@@ -2,7 +2,7 @@
 
 ## 本轮任务：首次公开 GitHub 发布
 
-状态：进行中；用户已明确授权公开可见性、首次提交与推送，并随后指定目标为 `qofotel201-coder/5950L`。当前 GitHub CLI 已认证；目标仓库为 PUBLIC，远端 `main` 仅有一个占位 README 初始提交，本轮将保留该历史而不强制覆盖。
+状态：已完成；用户指定的 `qofotel201-coder/5950L` 已确认 PUBLIC，GitHub-ready 内容已在保留远端初始历史的前提下提交并推送到 `agent/github-ready-repro`，草稿 PR #1 已创建并指向 `main`，首次 GitHub Actions 离线门成功。
 
 ### 本轮目标与验收标准
 
@@ -11,6 +11,15 @@
 - 使用现有公开 GitHub 仓库 `qofotel201-coder/5950L`，设置 `origin`，从其 `main` 基线发布 GitHub-ready 内容并建立跟踪关系。
 - 推送后从 GitHub 读取仓库可见性、默认分支和远端提交 SHA，确认它们与本地一致；检查 GitHub Actions 首次运行状态但不伪造成功。
 - 不上传私有 CAD/运行工件，不创建正式发布标签，不运行新的 Gmsh、SU2、ParaView、网格或 CFD。
+
+### 实施与验证结果
+
+- GitHub CLI 2.97.0 已使用账户 `qofotel201-coder` 的现有认证；仅在本仓库设置提交身份 `qofotel201-coder <qofotel201-coder@users.noreply.github.com>`，没有修改全局身份。
+- 远端 `main` 原提交 `99d7747de2bb64c72bf4457064b4c9a566ae574c` 仅含占位 README；本轮将它作为父提交，未 force-push、未改写历史。
+- 首个项目提交为 `140c34005177dc07e33da914da8c744ba84cdf41`（`Add reproducible CFD pipeline`），远端分支 SHA 与本地逐字一致。
+- 发布前严格预检35/35 PASS；CAD-free门200/200 PASS、1项因Windows symlink权限按设计skip；163个公开候选中私有工件、大于等于1 MB文件、个人路径及凭据命中均为0。
+- GitHub App创建PR因集成权限返回403后，按发布工作流改用已认证GitHub CLI成功创建草稿PR `https://github.com/qofotel201-coder/5950L/pull/1`；PR head/base与提交SHA均经远端读取确认。
+- 首次GitHub Actions `Offline Python gates` run `30765481363` 对该提交执行完毕并返回success。公开仓库的正式默认分支仍为`main`；PR保持draft，待所有者审阅后再合并，未越权自动合并。
 
 ## 本轮任务：GitHub-ready 离线复刻包
 
