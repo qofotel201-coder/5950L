@@ -1,0 +1,32 @@
+schema = "cfdpipe.topology_smoke.v1"
+status = "CONFIGURED"
+
+[policy]
+topology_smoke_only = true
+production_mesh_eligible = false
+runtime_tags_present = false
+
+[provenance]
+markers_sha256 = "a249c79b9167c782cfa8dbde8632b0fc6e9ca61bda84ae76f475eccf3722fa8e"
+pipeline_brep_sha256 = "13698e9afb96ac21205c31d8a23f718adece802fda51ed1a67857ba73379e121"
+
+[local_refinement]
+surface_fingerprint_ids = [
+  "0d6496c5a278f5c85422a6a63b467816369af1cf9032c85b8f93a3a9951bdac2",
+  "1c5e6d72af03421fa78e57ae4c924b43118d9ef0c98bef8aa77f7a4c2ca61402",
+  "26d33db152fc199e75c67316317548175de69a254c3a97cbf6bb3846beb81c52",
+  "2706e41a1bfa56bc3954913a91e778aff0686e8cbdf25c789ebdc8956e5cd5db",
+  "389bfe176b13b3c5de83cdcd8257c0851a36a38a62478c88ebed59cdd4dd2a60",
+  "86cbe21bf682eae6148f6263d0ab4d813dc388fb7603ba89fd294d5bac064b3f",
+  "8c1b026c845db34e1ec693d4ffbd814f342e478343025f33c13b58f40db52864",
+  "937d561b180b35ef1296884e57a6318f1aeddc51ac77a734ca8e52038fc493d2",
+  "94573b5cebbbac3cc34a9b3e4c6466072e513dbc38184d6bd7dbf580180a18d8",
+  "a938c962148d76f258d849d210da83fbeb74020f46a4f8252ddb167816eeaedd",
+  "b8563f28a244707a86c00d53952030eb384ba7ab0daa9329a1c691385cfae89f",
+  "c2fa0b7bdfce16c629e411cc5933d3b25b2ead2b31404ae6db99f8aafafacbce",
+  "d0f15a847965a541214861c93a349e4d30079bf0a7e46487a323afa91b62a301",
+  "ee508d8b0b7850999dcb3e5c7160b1ea41db247def27baa2dae99cbc43528279",
+]
+minimum_size_m = 0.012
+distance_max_m = 0.08
+sampling = 100

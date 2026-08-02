@@ -1,0 +1,69 @@
+[project]
+name = "model1_internal_external_rans"
+geometry_file = "geometry/raw/model1.step"
+result_root = "runs"
+
+[units]
+solver_system = "SI"
+source_geometry_length = "mm"
+solver_geometry_length = "m"
+altitude_input = "km"
+
+[axes]
+x_positive = "nose_to_tail"
+y_positive = "up"
+z_positive = "out_of_side_view"
+moment_rule = "right_hand"
+
+[reference]
+length_m = 5.2
+area_m2 = 0.2123716634
+moment_origin_m = [2.6, 0.0, 0.0]
+
+[atmosphere]
+model = "US_Standard_Atmosphere_1976"
+altitude_kind = "geopotential"
+viscosity_model = "Sutherland"
+
+[physics]
+solver = "RANS"
+turbulence_model = "SST"
+fluid_model = "STANDARD_AIR"
+wall_velocity = "no_slip"
+wall_thermal = "adiabatic"
+target_yplus = 0.7
+maximum_yplus = 1.0
+
+[mesh]
+medium_target_cells = 10000000
+medium_min_cells = 8000000
+medium_max_cells = 12000000
+minimum_prism_layers = 15
+target_prism_layers = 20
+initial_growth_ratio = 1.20
+allow_layer_collapse_at_sharp_edges = true
+
+[mesh.grid_levels]
+coarse_target_cells = 5000000
+medium_target_cells = 10000000
+fine_target_cells = 20000000
+
+[boundaries]
+farfield_role = "front_conical_surface"
+wall_role = "vehicle_internal_and_external_walls"
+rear_outlet_roles = ["rear_outlet_1", "rear_outlet_2"]
+measurement_surface_role = "turning_section_outlet"
+measurement_surface_is_solver_boundary = false
+
+[boundary_conditions.rear_outlets]
+mode = "TBD_AFTER_SUPERSONIC_PILOT"
+
+[solver]
+first_order_template = "templates/su2/first_order.cfg.j2"
+second_order_template = "templates/su2/second_order.cfg.j2"
+enable_cuda_for_benchmark = true
+production_cuda_policy = "use_only_after_verified_speedup"
+
+[production]
+design_case = "M50_H21_A8_B0"
+grid_independence_case = "M50_H21_A8_B0"

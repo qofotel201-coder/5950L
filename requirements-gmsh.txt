@@ -1,0 +1,2 @@
+# Python-to-Gmsh connection SDK; keep aligned with config/tools.json CLI.
+gmsh==4.15.2 --hash=sha256:7b36083bb410fa27c5d0e052929d1a9844a5b09169d66017b72b41aabd49d711

@@ -1,0 +1,55 @@
+{
+  "schema": "cfdpipe.reproducibility.v1",
+  "baseline_status": "VERIFIED_ON_REFERENCE_WORKSTATION",
+  "platform": {
+    "operating_system": "Windows",
+    "architecture": "x86_64"
+  },
+  "verified_toolchain": {
+    "python": {
+      "version": "3.13.14"
+    },
+    "gmsh_python_api": {
+      "version": "4.15.2"
+    },
+    "gmsh_cli": {
+      "version": "4.15.2",
+      "environment_override": "CFD_GMSH"
+    },
+    "su2_cfd": {
+      "version": "8.5.0",
+      "environment_override": "CFD_SU2_CFD"
+    },
+    "su2_sol": {
+      "version": "8.5.0",
+      "environment_override": "CFD_SU2_SOL",
+      "required": false
+    },
+    "mpi_launcher": {
+      "environment_override": "CFD_MPIEXEC",
+      "required_for_serial_reproduction": false
+    },
+    "paraview_pvbatch": {
+      "version": "6.2.0",
+      "environment_override": "CFD_PVBATCH"
+    }
+  },
+  "private_inputs": {
+    "version_control_policy": "EXCLUDED_FROM_GIT",
+    "integrity_contract": "config/markers.toml",
+    "missing_default_preflight_status": "WARN",
+    "strict_preflight_option": "--require-private-inputs"
+  },
+  "validation_tiers": {
+    "offline_repository_preflight": "python scripts/repro/verify_repository.py",
+    "offline_repository_preflight_strict": "python scripts/repro/verify_repository.py --require-private-inputs",
+    "cad_free_standard_library_tests": "python -B scripts/repro/run_cad_free_tests.py",
+    "full_standard_library_tests": "python -m unittest discover -s tests -v",
+    "full_tests_require_private_inputs": true
+  },
+  "scope": {
+    "external_programs_started_by_offline_preflight": false,
+    "network_accessed_by_offline_preflight": false,
+    "production_mesh_or_cfd_included": false
+  }
+}

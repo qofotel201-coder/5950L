@@ -1,0 +1,660 @@
+schema = "cfdpipe.markers.v2"
+status = "PASS"
+
+[source]
+path = "geometry/raw/model1.step"
+sha256 = "d7d1cbec76ccc6b45aad5689d61a28c41e1ba41b9cda6c90d46eb6ff891c1a6b"
+read_only = true
+
+[pipeline_geometry]
+path = "geometry/derived/model1_shared_topology/model1_shared_topology.brep"
+sha256 = "13698e9afb96ac21205c31d8a23f718adece802fda51ed1a67857ba73379e121"
+format = "brep"
+pipeline_eligible = true
+read_only = true
+
+[topology]
+volume_count = 2
+unique_surface_count = 57
+external_surface_count = 55
+shared_surface_count = 2
+
+[matching]
+surface_area_relative_tolerance = 2e-08
+surface_area_absolute_tolerance_m2 = 2e-09
+coordinate_absolute_tolerance_m = 2e-07
+interface_surface_distance_tolerance_m = 1e-09
+interface_boundary_distance_tolerance_m = 1e-09
+interface_normal_dot_tolerance = 1e-08
+unique_match_required = true
+runtime_tags_are_matching_criteria = false
+
+[integrity]
+algorithm = "SHA-256"
+canonicalization = "UTF-8 JSON, sorted keys, compact separators, integrity excluded"
+payload_sha256 = "1e0b85645a352ef27ffffa2bfc8a8e9bff861dcf6e99ad96a06465fbf8b66129"
+
+[provenance.project]
+path = "config/project.toml"
+sha256 = "96ec212caea5b76816adb5089ab77b97d77d131461ad854615940d52e4b3bd1c"
+
+[provenance.source_step]
+path = "geometry/raw/model1.step"
+sha256 = "d7d1cbec76ccc6b45aad5689d61a28c41e1ba41b9cda6c90d46eb6ff891c1a6b"
+
+[provenance.pipeline_brep]
+path = "geometry/derived/model1_shared_topology/model1_shared_topology.brep"
+sha256 = "13698e9afb96ac21205c31d8a23f718adece802fda51ed1a67857ba73379e121"
+
+[provenance.repair_manifest]
+path = "runs/real_connection/geometry_repair/repair_manifest.json"
+sha256 = "2ff98181b7b9cac714f31cf8b1f847a3696414a3b3daf42e3675214a9a3a2cbf"
+
+[provenance.marker_rematch]
+path = "runs/real_connection/geometry_repair/marker_rematch.json"
+sha256 = "6cb2e86b9c162d3eb3bec7f555790b4233c9ca246cddb3a07183507aab03b9d0"
+
+[provenance.interface_persistence]
+path = "runs/real_connection/geometry_repair_validation/interface_persistence.json"
+sha256 = "ab604729626f0356ac4289a015a918d7db4f7444191fbae643c4252cbe38de7d"
+
+[provenance.pipeline_topology]
+path = "runs/real_connection/geometry_repair/pipeline_brep_topology.json"
+sha256 = "714f7db58356940a84906301f4e32bee7fb1e9705c796b599d3dfefb76d75a19"
+
+[[solver_markers]]
+physical_name = "front_conical_surface"
+semantic_role = "front_conical_surface"
+kind = "farfield"
+dimension = 2
+solver_boundary = true
+create_physical_group = true
+group_fingerprint_id = "404e354d9d0cdc7d5982b4764ef5478869c43f606394f011a2ed7d6d08de60e6"
+member_count = 2
+member_fingerprint_ids = ["321a1fad07210a94a56239e698fbf4be898ae83bd1264266fa567733bc30fdb9", "5d8e26bedc239513848ca13a742434c6ec502709f028fcb30a958ea379941546"]
+
+[[solver_markers.members]]
+fingerprint_id = "321a1fad07210a94a56239e698fbf4be898ae83bd1264266fa567733bc30fdb9"
+original_surface_fingerprint_id = "9dae569788c66e682b56a212ea629c17a29e30dd72f42e736453dc6e7bee2c93"
+entity_type = "BSpline surface"
+area_m2 = 40.289328027921
+centroid_m = [2.514614322087, 0.0, 1.617202433115]
+bounding_box_m = [-0.521817131284, -3.605900530797, -1e-07, 4.487961730476, 3.605900530797, 7.211800961595]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "5d8e26bedc239513848ca13a742434c6ec502709f028fcb30a958ea379941546"
+original_surface_fingerprint_id = "9d28a3847764386c59148d49f11df5ca3c5aa46e39aa3986992342f846e11bc6"
+entity_type = "BSpline surface"
+area_m2 = 40.289328027921
+centroid_m = [2.514614322087, 0.0, -1.617202433115]
+bounding_box_m = [-0.521817131284, -3.605900530797, -7.211800961595, 4.487961730476, 3.605900530797, 1e-07]
+adjacent_volume_count = 1
+
+[[solver_markers]]
+physical_name = "rear_outlet_1"
+semantic_role = "rear_outlet_1"
+kind = "rear_outlet"
+dimension = 2
+solver_boundary = true
+create_physical_group = true
+group_fingerprint_id = "b569a19f8083caea123d8f159215b5182c8e449cf1ce3b7826cf77831aadcccb"
+member_count = 3
+member_fingerprint_ids = ["19ad56d49df2b67b5e610f3041400bdacfc0d3a351895f381db7b1897b1b7cd9", "52f5c38dbcf645345f760c8172569c61972732712ef8c092150ced368cbbaab6", "87a798d65788c640b41e445473f761880ecca218e68b5ee888a34529c338e766"]
+
+[[solver_markers.members]]
+fingerprint_id = "19ad56d49df2b67b5e610f3041400bdacfc0d3a351895f381db7b1897b1b7cd9"
+original_surface_fingerprint_id = "d7ff1ea54374a024b14ab910b36f3ccd7b684c4a9598a04691a8b3ec8736bcbf"
+entity_type = "Plane"
+area_m2 = 0.212371663383
+centroid_m = [6.305362301842, 0.0, 0.0]
+bounding_box_m = [6.305362201842, -0.2600001, -0.2600001, 6.305362401842, 0.2600001, 0.2600001]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "52f5c38dbcf645345f760c8172569c61972732712ef8c092150ced368cbbaab6"
+original_surface_fingerprint_id = "047f6e83841c81d76f75b1a39dea937fb793c68d043c365f2eaede350db8cde0"
+entity_type = "Cone"
+area_m2 = 3.515283273491
+centroid_m = [5.631943351286, -0.549058087694, 0.0]
+bounding_box_m = [5.1999999, -1.248886488578, -1.248886488578, 6.305362401842, 1e-07, 1.248886488578]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "87a798d65788c640b41e445473f761880ecca218e68b5ee888a34529c338e766"
+original_surface_fingerprint_id = "81a174834d4fd63f0e35e1ac7d7d0a771f78575ccfff996c7fa99cfae4718d51"
+entity_type = "Cone"
+area_m2 = 3.515283273491
+centroid_m = [5.631943351286, 0.549058087694, 0.0]
+bounding_box_m = [5.1999999, -1e-07, -1.248886488578, 6.305362401842, 1.248886488578, 1.248886488578]
+adjacent_volume_count = 1
+
+[[solver_markers]]
+physical_name = "rear_outlet_2"
+semantic_role = "rear_outlet_2"
+kind = "rear_outlet"
+dimension = 2
+solver_boundary = true
+create_physical_group = true
+group_fingerprint_id = "d006f4f63a8ac3b540513b86bf49550a13e87e28d18c381a34adcc86e32ad170"
+member_count = 2
+member_fingerprint_ids = ["a2fb1d15e70c7b555bbdccb5cc494e0117c5e146ef400be409284705a65f0f32", "d25e4c8cc8cbc316db1c4aaf1a943b1c63d816cd5192591499fa0bc3be5d1397"]
+
+[[solver_markers.members]]
+fingerprint_id = "a2fb1d15e70c7b555bbdccb5cc494e0117c5e146ef400be409284705a65f0f32"
+original_surface_fingerprint_id = "4cca37af84ab754262e673ed2e29e3559cb98fd597db75081557523f24b38ac5"
+entity_type = "Cone"
+area_m2 = 18.776576566719
+centroid_m = [4.786364676157, 1.666744632464, 0.0]
+bounding_box_m = [4.487961530476, -1e-07, -3.605900530797, 5.2000001, 3.605900530797, 3.605900530797]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "d25e4c8cc8cbc316db1c4aaf1a943b1c63d816cd5192591499fa0bc3be5d1397"
+original_surface_fingerprint_id = "1cb4eb7fbff20464b56e475d7a359bf2a29c5d6a542e69f9dfdfa05eaa02eb1f"
+entity_type = "Cone"
+area_m2 = 18.776576566719
+centroid_m = [4.786364676157, -1.666744632464, 0.0]
+bounding_box_m = [4.487961530476, -3.605900530797, -3.605900530797, 5.2000001, 1e-07, 3.605900530797]
+adjacent_volume_count = 1
+
+[[solver_markers]]
+physical_name = "vehicle_internal_and_external_walls"
+semantic_role = "vehicle_internal_and_external_walls"
+kind = "wall"
+dimension = 2
+solver_boundary = true
+create_physical_group = true
+group_fingerprint_id = "452b9647c9b7646a34153094f0f5a4358e0748daab34a3c84e398115dcfd83ce"
+member_count = 48
+member_fingerprint_ids = ["0c1fb350ba043b88f4170999e12457b344d554766a510a8dd81411125974362f", "0d6496c5a278f5c85422a6a63b467816369af1cf9032c85b8f93a3a9951bdac2", "1707987a8fdcfd04fcdfa2b016dd1c91d344e10da97babcbfdcb05bdaefa555a", "1c5e6d72af03421fa78e57ae4c924b43118d9ef0c98bef8aa77f7a4c2ca61402", "1ee5dd2ace401f18d2a3139f2f8357b2c02ac92488523372a3221835c1dc7f78", "210697a20ac5d3540cb01044a8f0b3a74f7d588865e74790dbc7f073980bfec1", "26d33db152fc199e75c67316317548175de69a254c3a97cbf6bb3846beb81c52", "2706e41a1bfa56bc3954913a91e778aff0686e8cbdf25c789ebdc8956e5cd5db", "2da3af8ddaf90e64c3e651b1a572c1d9e8c40b03f6ba0ee02e31c2a184650da2", "389bfe176b13b3c5de83cdcd8257c0851a36a38a62478c88ebed59cdd4dd2a60", "414492f76a5a2aa2a7b2cf85b34404d6bb5df487745f99d127c4e58b12e02467", "489879f6f4379d399bdb22cf0fda4f21a67c89e6c7831b95fde60fd14727f68d", "52cfcce185c4f20efcc9684deadd0441bc5947d628e251ab9642131a9ba0b3b8", "54f37b17b400aa9e2f62bc052225f8d9d84440540245f9f3f3dcdce36149885e", "5a15a5d945d73590ec92644265f40aee1aa4a2677dab2c169d0dd5e71b09f488", "5d3223ca971d7890842d6fe6940fd226a263d3ec35bcf3e19513e18287ff0386", "5ea5a7ae86400a9a6fda40c2af8767ccbe94eeffe1f0f45699c6e12064e85a99", "63a9e1b958a7b8a11e41bad4bfa57ede426442761f608a23e3de51c0e282bcc2", "655dfe0bcf3d05459bf21e7e713a3b596eb64ca256a2a3f5db3ee9c91b15d4bf", "6ee490d036532554dc6deb429f1f3583909e9aa0b749812a4ff7413be9c33b18", "7150ed7881a47d6a11cb5789fd035e3c171fcfdd4f25566908ecb74ff210a9c4", "773d33b3e091cc6dede77dc476b4bbab5c7ce4779f216fadd23895aebf6c2456", "7f22aaf5751a5593e56a95e9562645bd3e1759e75d122112e549836461651b6a", "866d483f203de65cca2da371d03a1704d357fd7c8d4ffb6bce44247f26f13131", "86cbe21bf682eae6148f6263d0ab4d813dc388fb7603ba89fd294d5bac064b3f", "88f067f52164f87f0c51c21bf1cc64fe74a54e3657a3d80ec87142c65411110e", "8c1b026c845db34e1ec693d4ffbd814f342e478343025f33c13b58f40db52864", "937d561b180b35ef1296884e57a6318f1aeddc51ac77a734ca8e52038fc493d2", "94573b5cebbbac3cc34a9b3e4c6466072e513dbc38184d6bd7dbf580180a18d8", "a25cf6a7267279a231656517e0cb5f8f712da64fd11d42089d19c47ab433fdb9", "a9352ce92ea82b24f62c67b855a919f43c1006a6ac35c66272dae0905e490522", "a938c962148d76f258d849d210da83fbeb74020f46a4f8252ddb167816eeaedd", "b38c4e218d62cee2e069594fb803d708354c3527e4be2f8d96195f09e1d70192", "b41bd18b84251a4de185154aa4ac0e6f6891f44a38147291c1041ad7e154f999", "b8563f28a244707a86c00d53952030eb384ba7ab0daa9329a1c691385cfae89f", "b9656241e69a4e86112746b38700d61202db0a933d5787ea1630c4f2a4322215", "baf086f8b4d55eb51aeca90d403a11ee85d4252fcc9d99edc46b7bababc4dfe1", "bd5c0f03b4407aa5e99c461641e0468efc79fccdd23aec26fa18d4a1651ae429", "c18725b97d82c8812a1ede38d5f4e6fb425f52417ccc3d9ff9d0c543871d319f", "c2fa0b7bdfce16c629e411cc5933d3b25b2ead2b31404ae6db99f8aafafacbce", "c72cc8bcec0ba791f903e209e9e1d79fe87a06c7c1017fe940e94a3fb095ae8d", "ce3341ea2980b49ef141fcdc804e29552d0034e9b2bf332d2bdffad42819e31d", "d0f15a847965a541214861c93a349e4d30079bf0a7e46487a323afa91b62a301", "d72ade54787e1e9a10991d0148620a341e005dcfd41dbc3ebae70b87725e71bc", "e2a7cc9be738da689a425d49d1e1e194c0809062aef800713ddda5a795485def", "ee508d8b0b7850999dcb3e5c7160b1ea41db247def27baa2dae99cbc43528279", "f635f5d86c87aeb266b584dcf5f5447ee16ec8b9eb393045a0abb826584b2f39", "f89775dc00294c3e42732057f07976f29f41e134ad4b8864fd9ef634427da172"]
+
+[[solver_markers.members]]
+fingerprint_id = "0c1fb350ba043b88f4170999e12457b344d554766a510a8dd81411125974362f"
+original_surface_fingerprint_id = "8f94571cfb39e780cd8830352a8e1c101db445fccc44f315befe36e643df4ef3"
+entity_type = "BSpline surface"
+area_m2 = 0.27574284647
+centroid_m = [1.36899360397, -0.106337440362, -0.072559744963]
+bounding_box_m = [0.007411704736, -0.153431091886, -0.193553167632, 2.207767698618, 0.06763057808, 1e-07]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "0d6496c5a278f5c85422a6a63b467816369af1cf9032c85b8f93a3a9951bdac2"
+original_surface_fingerprint_id = "25a39d2ae709d70c8e131b7a31fcba300176be8e08bacb687025b839d9ad3c2b"
+entity_type = "BSpline surface"
+area_m2 = 0.017895549732
+centroid_m = [2.766612023079, -0.220034030532, 0.024018180736]
+bounding_box_m = [2.611807375985, -0.28682292867, 0.014199672994, 2.88000009992, -0.153177071319, 0.03094650064]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "1707987a8fdcfd04fcdfa2b016dd1c91d344e10da97babcbfdcb05bdaefa555a"
+original_surface_fingerprint_id = "822dd1e8df2d5eb768a36dca57adfa8e5529a461da6be67dc8889ce479a127e4"
+entity_type = "BSpline surface"
+area_m2 = 0.201217566389
+centroid_m = [2.713305716629, -0.02479486194, -0.245853073792]
+bounding_box_m = [2.207767487, -0.1300001, -0.259814864114, 3.2000001, 0.075000109513, -0.215386498489]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "1c5e6d72af03421fa78e57ae4c924b43118d9ef0c98bef8aa77f7a4c2ca61402"
+original_surface_fingerprint_id = "6ec91b8777f635c1412665b429e0f3cfe5eb66a13f40d2a7aafd7af9c1f82ce9"
+entity_type = "BSpline surface"
+area_m2 = 0.20882388397
+centroid_m = [4.267619047612, 3.9407113e-05, 0.044864130612]
+bounding_box_m = [3.7699999, -0.0800001, -1e-07, 4.7200001, 0.0800001, 0.138564164606]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "1ee5dd2ace401f18d2a3139f2f8357b2c02ac92488523372a3221835c1dc7f78"
+original_surface_fingerprint_id = "a411dc657ac112d76b6fa3ea113356a6c4484c2464e1e46c84fa83513c75c8de"
+entity_type = "BSpline surface"
+area_m2 = 0.33575063328
+centroid_m = [1.3737306569, -0.012797329543, -0.174640136798]
+bounding_box_m = [0.007411709549, -0.153431091894, -0.242621836022, 2.207767694023, 0.075000100003, -0.006244209598]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "210697a20ac5d3540cb01044a8f0b3a74f7d588865e74790dbc7f073980bfec1"
+original_surface_fingerprint_id = "44aa7e925cdb2f643b7a0120dd3ff7eefa5f5e7277b2c0788379746a6093fea2"
+entity_type = "BSpline surface"
+area_m2 = 0.000233003775
+centroid_m = [0.003705902615, 0.074997579227, 0.004549109597]
+bounding_box_m = [-1e-07, 0.065340641737, -0.000334706521, 0.007411909549, 0.084659358263, 0.016730426075]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "26d33db152fc199e75c67316317548175de69a254c3a97cbf6bb3846beb81c52"
+original_surface_fingerprint_id = "b09151adb7a52ab094fe91ff23284bbbeedfda99105b0d46441cab6b4f9ad0af"
+entity_type = "BSpline surface"
+area_m2 = 0.025209910213
+centroid_m = [2.805525093586, -0.23629109146, -0.017341818611]
+bounding_box_m = [2.611807376, -0.288210509651, -0.03094650064, 3.050000100022, -0.15317707133, 1e-07]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "2706e41a1bfa56bc3954913a91e778aff0686e8cbdf25c789ebdc8956e5cd5db"
+original_surface_fingerprint_id = "1f5ac5160ce3d550e50f4d5e5a02819e9da93e18296f56159677c6ed9e56bddd"
+entity_type = "BSpline surface"
+area_m2 = 0.093950117356
+centroid_m = [2.728808612442, -0.272443906089, 0.102966239763]
+bounding_box_m = [2.207872912461, -0.288428269379, -1e-07, 3.050000100022, -0.232606707945, 0.193860967331]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "2da3af8ddaf90e64c3e651b1a572c1d9e8c40b03f6ba0ee02e31c2a184650da2"
+original_surface_fingerprint_id = "a79bf2ad56d16c64d909e1253553dfa81af454466c6d15b5173a4f6ee34819a8"
+entity_type = "BSpline surface"
+area_m2 = 0.335749977701
+centroid_m = [1.373730718065, -0.012797325725, 0.17464013262]
+bounding_box_m = [0.007411709549, -0.153431091894, 0.006244209598, 2.207767694023, 0.075000100003, 0.242621836022]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "389bfe176b13b3c5de83cdcd8257c0851a36a38a62478c88ebed59cdd4dd2a60"
+original_surface_fingerprint_id = "8eb1bd1a49446ffe29dafd360aa8907004bf84fe2bf6f8076bb44ab79c87e41c"
+entity_type = "BSpline surface"
+area_m2 = 0.011048678669
+centroid_m = [2.970957216973, -0.209388453283, 0.006685974557]
+bounding_box_m = [2.8799999, -0.25066181551, -1e-07, 3.050000100022, -0.148477843205, 0.01419987299]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "414492f76a5a2aa2a7b2cf85b34404d6bb5df487745f99d127c4e58b12e02467"
+original_surface_fingerprint_id = "da6a91afc87fa90ea9bdd16fcaa44fc222b68fb626d9d40c916b04a2b16a31f7"
+entity_type = "BSpline surface"
+area_m2 = 0.30433053922
+centroid_m = [4.988679052623, 0.000112690884, 0.128296081494]
+bounding_box_m = [4.7199999, -0.2500001, -1e-07, 5.2000001, 0.2500001, 0.433012801892]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "489879f6f4379d399bdb22cf0fda4f21a67c89e6c7831b95fde60fd14727f68d"
+original_surface_fingerprint_id = "2114c33eb255fccfdf5adaee850eb9a5bc51da9c0384a32a0fcbb9fa54d39e9a"
+entity_type = "BSpline surface"
+area_m2 = 0.022200985521
+centroid_m = [3.12440451758, -0.249895246608, 0.07276525751]
+bounding_box_m = [3.049999900022, -0.2600001, -1e-07, 3.2000001, -0.221015323807, 0.146949451822]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "52cfcce185c4f20efcc9684deadd0441bc5947d628e251ab9642131a9ba0b3b8"
+original_surface_fingerprint_id = "0b914b0e75a7675d45c7c8f72871ee5d0a382c4b15094c8c2a83ffaf41cb0b1c"
+entity_type = "BSpline surface"
+area_m2 = 0.00545750464
+centroid_m = [2.740324842549, -0.178009077883, -0.009335206725]
+bounding_box_m = [2.611807376, -0.2600001, -0.031132179044, 3.050000100022, -0.15317707133, 1e-07]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "54f37b17b400aa9e2f62bc052225f8d9d84440540245f9f3f3dcdce36149885e"
+original_surface_fingerprint_id = "1f955df22147a6ac364dde05df04d3e72f099e51c338fac621e3d7c32b6b4b64"
+entity_type = "BSpline surface"
+area_m2 = 0.796518642507
+centroid_m = [1.895334264121, 0.176251998778, -0.116863535672]
+bounding_box_m = [0.007411709549, 0.0749999, -0.24894788569, 3.2000001, 0.291546331302, 1e-07]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "5a15a5d945d73590ec92644265f40aee1aa4a2677dab2c169d0dd5e71b09f488"
+original_surface_fingerprint_id = "66dc9843baac289fe499116c1165c4b3083101fb197da8de0c6f57b549f68cd1"
+entity_type = "BSpline surface"
+area_m2 = 0.051125303891
+centroid_m = [2.6289883222, -0.166659658253, -0.099366333297]
+bounding_box_m = [2.203636467883, -0.189757568851, -0.193633343462, 2.89694821211, -0.151253433153, -0.01400554517]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "5d3223ca971d7890842d6fe6940fd226a263d3ec35bcf3e19513e18287ff0386"
+original_surface_fingerprint_id = "d6996e4aeafb17be1e320cc7c97a58490fdb5ea2d8cf498dd605b35c83fc8af8"
+entity_type = "BSpline surface"
+area_m2 = 0.051346174324
+centroid_m = [2.627506964801, -0.166583450654, 0.099250879418]
+bounding_box_m = [2.203636467883, -0.189757568851, 0.01400554517, 2.89694821211, -0.151253433153, 0.193633343462]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "5ea5a7ae86400a9a6fda40c2af8767ccbe94eeffe1f0f45699c6e12064e85a99"
+original_surface_fingerprint_id = "37b79bfb8a5cdcb549f5de1a335b3f84bb236a50d8faef960702484fe7f1eeef"
+entity_type = "BSpline surface"
+area_m2 = 0.00800575846
+centroid_m = [5.2, 0.000142602803, 0.162350140909]
+bounding_box_m = [5.1999999, -0.2600001, -1e-07, 5.2000001, 0.2600001, 0.450333309968]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "63a9e1b958a7b8a11e41bad4bfa57ede426442761f608a23e3de51c0e282bcc2"
+original_surface_fingerprint_id = "b7323adc9ed55409b4b47e623e563acdb750367e0f48470e33c1fee55e009c56"
+entity_type = "BSpline surface"
+area_m2 = 0.073518997658
+centroid_m = [3.28860994025, -0.077704597944, -0.03662808015]
+bounding_box_m = [2.8799999, -0.19537179517, -0.111278621258, 3.7700001, 0.0600001, 1e-07]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "655dfe0bcf3d05459bf21e7e713a3b596eb64ca256a2a3f5db3ee9c91b15d4bf"
+original_surface_fingerprint_id = "af3aadceab2408db1bd3f9fdece7a4e07a3d72fef1babe9246a2b4ffceb81c8d"
+entity_type = "BSpline surface"
+area_m2 = 0.068811711571
+centroid_m = [3.282559477105, -0.15821069285, -0.037732967387]
+bounding_box_m = [2.8799999, -0.258272295897, -0.111278631085, 3.7700001, -0.029394296855, 1e-07]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "6ee490d036532554dc6deb429f1f3583909e9aa0b749812a4ff7413be9c33b18"
+original_surface_fingerprint_id = "b49c5d426f7897b434c562a80846c0c4408267cac488113d1a7591c0435170fe"
+entity_type = "BSpline surface"
+area_m2 = 0.10248191821
+centroid_m = [2.677504051697, -0.211011074251, 0.187741110332]
+bounding_box_m = [2.207767487, -0.287686244033, 0.136938508287, 3.2000001, -0.15343089179, 0.2021221594]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "7150ed7881a47d6a11cb5789fd035e3c171fcfdd4f25566908ecb74ff210a9c4"
+original_surface_fingerprint_id = "b49786ee43f4e66ae35e58296c6594b5e82a486e037d022e561fd82eea1bd2a6"
+entity_type = "BSpline surface"
+area_m2 = 0.055191814151
+centroid_m = [3.312216587083, -0.113418437739, 0.074830755243]
+bounding_box_m = [2.8799999, -0.258272298567, 0.04776568256, 3.7700001, 0.030000099999, 0.111278640911]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "773d33b3e091cc6dede77dc476b4bbab5c7ce4779f216fadd23895aebf6c2456"
+original_surface_fingerprint_id = "2a8a9ab7a609b0250157e28449115705361f8dc09f7e9adcfc9c6f337e620be8"
+entity_type = "BSpline surface"
+area_m2 = 0.102134147586
+centroid_m = [2.677497640739, -0.211015327577, -0.187743899013]
+bounding_box_m = [2.207767487, -0.287686244033, -0.2021221594, 3.2000001, -0.15343089179, -0.136938508287]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "7f22aaf5751a5593e56a95e9562645bd3e1759e75d122112e549836461651b6a"
+original_surface_fingerprint_id = "bfca0937f555fe2596c22edd10b69bc029687deca7a514d1b723263087a2d1a0"
+entity_type = "BSpline surface"
+area_m2 = 0.79651864257
+centroid_m = [1.895334263999, 0.176251998766, 0.116863535658]
+bounding_box_m = [0.007411709549, 0.0749999, -1e-07, 3.2000001, 0.291546331302, 0.24894788569]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "866d483f203de65cca2da371d03a1704d357fd7c8d4ffb6bce44247f26f13131"
+original_surface_fingerprint_id = "f419aeea53732951bf88e6f739201fe2c2c62e76f54311fb0f10db12485c88bc"
+entity_type = "BSpline surface"
+area_m2 = 0.008016395264
+centroid_m = [5.2, -8.6301481e-05, -0.162398438666]
+bounding_box_m = [5.1999999, -0.2600001, -0.450333309968, 5.2000001, 0.2600001, 0.009006764196]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "86cbe21bf682eae6148f6263d0ab4d813dc388fb7603ba89fd294d5bac064b3f"
+original_surface_fingerprint_id = "4c24833a8c25e7d9d195b57c91ca1c8762bbfedf133006d07a62ebfa7875e64c"
+entity_type = "BSpline surface"
+area_m2 = 0.209101336593
+centroid_m = [4.267619047626, -2.3848704e-05, -0.044877477305]
+bounding_box_m = [3.7699999, -0.0800001, -0.138564164606, 4.7200001, 0.0800001, 0.002771381291]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "88f067f52164f87f0c51c21bf1cc64fe74a54e3657a3d80ec87142c65411110e"
+original_surface_fingerprint_id = "4a8159d07e66cedeebfe7f18d9f692df554a40db7e672238a83347b84b967e7c"
+entity_type = "BSpline surface"
+area_m2 = 0.068857468801
+centroid_m = [3.282571659798, -0.158189552398, 0.037795618896]
+bounding_box_m = [2.8799999, -0.258272295897, -1e-07, 3.7700001, -0.029394296855, 0.111278631085]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "8c1b026c845db34e1ec693d4ffbd814f342e478343025f33c13b58f40db52864"
+original_surface_fingerprint_id = "3f9ceb6763e11312a9589f63d6578989773cba42311b3b3a869ef76bf6d9bf0d"
+entity_type = "BSpline surface"
+area_m2 = 0.017895549732
+centroid_m = [2.766612023079, -0.220034030532, -0.024018180736]
+bounding_box_m = [2.611807375967, -0.28682292867, -0.03094650064, 2.8800001, -0.153177071319, -0.01419967299]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "937d561b180b35ef1296884e57a6318f1aeddc51ac77a734ca8e52038fc493d2"
+original_surface_fingerprint_id = "9f45b1eb777ee94cfbed2933e653866c9a478cf4f06b4444a165269c1a9e7997"
+entity_type = "BSpline surface"
+area_m2 = 0.010914851529
+centroid_m = [2.970644218881, -0.209446775189, -0.006713144822]
+bounding_box_m = [2.8799999, -0.25066181551, -0.01419987299, 3.050000100022, -0.148477843205, 1e-07]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "94573b5cebbbac3cc34a9b3e4c6466072e513dbc38184d6bd7dbf580180a18d8"
+original_surface_fingerprint_id = "a5026044f317217af4b398e6d8a3fef3129ebdcbbbdfb8390ceec13f0b35c8b2"
+entity_type = "BSpline surface"
+area_m2 = 0.093951276476
+centroid_m = [2.728804658594, -0.272444081415, -0.102966465118]
+bounding_box_m = [2.207872921476, -0.288428269385, -0.193860964312, 3.050000100022, -0.232606709248, 1e-07]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "a25cf6a7267279a231656517e0cb5f8f712da64fd11d42089d19c47ab433fdb9"
+original_surface_fingerprint_id = "586bcb9d5a85e85bb87f5465e6329379b23a3a3c184b6a8830df21798a436fb4"
+entity_type = "BSpline surface"
+area_m2 = 0.044602454754
+centroid_m = [2.688346821937, -0.14100055262, 0.211148198286]
+bounding_box_m = [2.207767487, -0.163544206371, 0.193552963777, 3.2000001, -0.112233735492, 0.225166704984]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "a9352ce92ea82b24f62c67b855a919f43c1006a6ac35c66272dae0905e490522"
+original_surface_fingerprint_id = "4fd991be22b0104935c77173c3cf582290254f8c6d099c196b7dd142ce7cc81f"
+entity_type = "BSpline surface"
+area_m2 = 0.275742846333
+centroid_m = [1.368993603921, -0.106337440354, 0.072559744998]
+bounding_box_m = [0.007411704736, -0.153431091886, -1.00056e-07, 2.207767698618, 0.06763057808, 0.193553167632]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "a938c962148d76f258d849d210da83fbeb74020f46a4f8252ddb167816eeaedd"
+original_surface_fingerprint_id = "b4b3ba02cf7be5e9953098150d8652efe5afe6c3df5e248514d6646087358c92"
+entity_type = "BSpline surface"
+area_m2 = 0.025209887681
+centroid_m = [2.805525105077, -0.236291132838, 0.017341821011]
+bounding_box_m = [2.611807376, -0.288210509651, -1e-07, 3.050000100022, -0.15317707133, 0.03094650064]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "b38c4e218d62cee2e069594fb803d708354c3527e4be2f8d96195f09e1d70192"
+original_surface_fingerprint_id = "36d0babd51fcc233bf61b73947a2c364013bb7345390d12c13dacfb6e72fb762"
+entity_type = "BSpline surface"
+area_m2 = 0.000232926605
+centroid_m = [0.003705862119, 0.074998139831, -0.004548145766]
+bounding_box_m = [-1e-07, 0.065340641737, -0.016730426075, 0.007411909549, 0.084659358263, 1e-07]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "b41bd18b84251a4de185154aa4ac0e6f6891f44a38147291c1041ad7e154f999"
+original_surface_fingerprint_id = "a5f471aa3ca33de77a9231897f635db97b646d0aa986364a125925e0d358532e"
+entity_type = "BSpline surface"
+area_m2 = 0.048373860014
+centroid_m = [2.366084049203, -0.153360880782, 0.068299874791]
+bounding_box_m = [2.207767487, -0.153496435179, -1e-07, 2.611807576, -0.153177071327, 0.193520826629]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "b8563f28a244707a86c00d53952030eb384ba7ab0daa9329a1c691385cfae89f"
+original_surface_fingerprint_id = "dfa4e2f0f2b555657e52cf76bba902e7e9a8082dde6759b80c49d2ba817c5abd"
+entity_type = "BSpline surface"
+area_m2 = 0.06982335736
+centroid_m = [2.527209130046, -0.219999971723, 0.159676149813]
+bounding_box_m = [2.20358339995, -0.286604405838, 0.109910801284, 2.885070399734, -0.153395594162, 0.19589799687]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "b9656241e69a4e86112746b38700d61202db0a933d5787ea1630c4f2a4322215"
+original_surface_fingerprint_id = "1bdd6509f79087973514c40ead5486b5cfb536608110264380bd39755646f399"
+entity_type = "BSpline surface"
+area_m2 = 0.022200985533
+centroid_m = [3.124404517593, -0.249895246613, -0.072765257472]
+bounding_box_m = [3.049999900022, -0.2600001, -0.146949451822, 3.2000001, -0.221015323807, 1e-07]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "baf086f8b4d55eb51aeca90d403a11ee85d4252fcc9d99edc46b7bababc4dfe1"
+original_surface_fingerprint_id = "2ac8f5cafd201caa18c55461812f2a0ae7500c154ce54bd65b2a2feb59f9d3e6"
+entity_type = "BSpline surface"
+area_m2 = 0.073357769851
+centroid_m = [3.288731195275, -0.077670557448, 0.036655719574]
+bounding_box_m = [2.8799999, -0.19537179517, -1e-07, 3.7700001, 0.0600001, 0.111278621258]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "bd5c0f03b4407aa5e99c461641e0468efc79fccdd23aec26fa18d4a1651ae429"
+original_surface_fingerprint_id = "8c9ecbd5901d9b666d0a64be8ffe0499f03e0bb0bde103a077b493d44a26f34d"
+entity_type = "BSpline surface"
+area_m2 = 0.304734886224
+centroid_m = [4.988679052623, -6.8199151e-05, -0.128334248464]
+bounding_box_m = [4.7199999, -0.2500001, -0.433012801892, 5.2000001, 0.2500001, 0.008660354035]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "c18725b97d82c8812a1ede38d5f4e6fb425f52417ccc3d9ff9d0c543871d319f"
+original_surface_fingerprint_id = "793ee97a973b37b5d7e5c0c329d586a1bfc07187f2213f135b1d6dcca7454b7b"
+entity_type = "BSpline surface"
+area_m2 = 0.044602454754
+centroid_m = [2.688346821937, -0.14100055262, -0.211148198286]
+bounding_box_m = [2.207767487, -0.163544206371, -0.225166704984, 3.2000001, -0.112233735492, -0.193552963777]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "c2fa0b7bdfce16c629e411cc5933d3b25b2ead2b31404ae6db99f8aafafacbce"
+original_surface_fingerprint_id = "b9376d899ff91b04d0c40ce7620d4dc7b713a278126266e928fc3b6105dd0875"
+entity_type = "BSpline surface"
+area_m2 = 0.0509843121
+centroid_m = [2.629342176462, -0.273323396181, 0.099363747918]
+bounding_box_m = [2.203636467883, -0.288746566847, 0.01400554517, 2.89694821211, -0.250242431149, 0.193633343462]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "c72cc8bcec0ba791f903e209e9e1d79fe87a06c7c1017fe940e94a3fb095ae8d"
+original_surface_fingerprint_id = "6d5d507fac90453e17e7f9bbb69c3267eec0150791e392e38f959786d7742900"
+entity_type = "BSpline surface"
+area_m2 = 0.201217566389
+centroid_m = [2.713305716629, -0.02479486194, 0.245853073792]
+bounding_box_m = [2.207767487, -0.1300001, 0.215386498489, 3.2000001, 0.075000109513, 0.259814864114]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "ce3341ea2980b49ef141fcdc804e29552d0034e9b2bf332d2bdffad42819e31d"
+original_surface_fingerprint_id = "69cfbb00d43a3efe2fc5b00ac4ed33fa7d6ae75f6c7fd2a372af8f92a7c94766"
+entity_type = "BSpline surface"
+area_m2 = 1.634715896942
+centroid_m = [4.200000000015, -8.798238e-05, -0.16556150411]
+bounding_box_m = [3.1999999, -0.2600001, -0.450333309968, 5.2000001, 0.2600001, 0.009006764196]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "d0f15a847965a541214861c93a349e4d30079bf0a7e46487a323afa91b62a301"
+original_surface_fingerprint_id = "4d84af140725e8b3efb1c9af59c7e897d0f72f38a02792ec9f6719dcdd045ebe"
+entity_type = "BSpline surface"
+area_m2 = 0.069829969738
+centroid_m = [2.52717952879, -0.220000006759, -0.159679413364]
+bounding_box_m = [2.20358339995, -0.286604405838, -0.19589799687, 2.885070399734, -0.153395594162, -0.109910801284]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "d72ade54787e1e9a10991d0148620a341e005dcfd41dbc3ebae70b87725e71bc"
+original_surface_fingerprint_id = "dc8f72b8daf30f3bd6da54bb102adb67de0857029986836e2e1d5616a88020df"
+entity_type = "BSpline surface"
+area_m2 = 0.00545911603
+centroid_m = [2.74036589084, -0.178017824321, 0.009329828693]
+bounding_box_m = [2.611807376, -0.2600001, -1e-07, 3.050000100022, -0.15317707133, 0.031132179044]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "e2a7cc9be738da689a425d49d1e1e194c0809062aef800713ddda5a795485def"
+original_surface_fingerprint_id = "5dd07dd4c056a542a4d7919de0eee3bec6138f25011d9b449e383231fe2da40b"
+entity_type = "BSpline surface"
+area_m2 = 0.048373889567
+centroid_m = [2.366084090939, -0.153360880798, -0.068299900733]
+bounding_box_m = [2.207767487, -0.153496435179, -0.193520826629, 2.611807576, -0.153177071327, 1e-07]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "ee508d8b0b7850999dcb3e5c7160b1ea41db247def27baa2dae99cbc43528279"
+original_surface_fingerprint_id = "35b14aa77dd3148404e13399672e8aa398f3e05715d644263b31d9206acf9ef9"
+entity_type = "BSpline surface"
+area_m2 = 0.051521921619
+centroid_m = [2.626481598967, -0.273465022736, -0.099185400366]
+bounding_box_m = [2.203636467883, -0.288746566847, -0.193633343462, 2.89694821211, -0.250242431149, -0.01400554517]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "f635f5d86c87aeb266b584dcf5f5447ee16ec8b9eb393045a0abb826584b2f39"
+original_surface_fingerprint_id = "962c5fcd49aff12624b994848176119453521ea4b1f9672a9bd4d92e39692ae0"
+entity_type = "BSpline surface"
+area_m2 = 1.63254682323
+centroid_m = [4.199999999985, 0.000145380294, 0.165512265634]
+bounding_box_m = [3.1999999, -0.2600001, -1e-07, 5.2000001, 0.2600001, 0.450333309968]
+adjacent_volume_count = 1
+
+[[solver_markers.members]]
+fingerprint_id = "f89775dc00294c3e42732057f07976f29f41e134ad4b8864fd9ef634427da172"
+original_surface_fingerprint_id = "cb72b5a971e849879c3317815be3252ce3fe9ebc9aca3502487d42e318937253"
+entity_type = "BSpline surface"
+area_m2 = 0.055216717325
+centroid_m = [3.312194117085, -0.113426095249, -0.074831561596]
+bounding_box_m = [2.8799999, -0.258272298567, -0.111278640911, 3.7700001, 0.030000099999, -0.04776568256]
+adjacent_volume_count = 1
+
+[fluid]
+physical_name = "fluid"
+semantic_role = "fluid"
+dimension = 3
+solver_boundary = false
+create_physical_group = true
+volume_count = 2
+selector_policy = "canonical_volume_geometry_unique_match"
+
+[[fluid.volume_selectors]]
+fingerprint_id = "5a5c0608a670b8ac906ecaf2381c5b9426a5f3fea47839a56ac8ae2028480ad6"
+schema = "cfdpipe.volume_geometry_selector.v1"
+derived_cad_sha256 = "13698e9afb96ac21205c31d8a23f718adece802fda51ed1a67857ba73379e121"
+entity_type = "Volume"
+volume_m3 = 15.693437541807
+centroid_m = [3.716806954894, -0.000650786233, -3.48883e-07]
+bounding_box_m = [-0.171197216339, -1.248886488578, -2.497772877155, 6.305362401842, 1.248886488578, 2.497772877155]
+boundary_surface_count = 53
+
+[[fluid.volume_selectors]]
+fingerprint_id = "a6c7e67466458f81f048ae6cdf17313509b6ce83d2acaa4c39e136e36de922da"
+schema = "cfdpipe.volume_geometry_selector.v1"
+derived_cad_sha256 = "13698e9afb96ac21205c31d8a23f718adece802fda51ed1a67857ba73379e121"
+entity_type = "Volume"
+volume_m3 = 89.51193707433
+centroid_m = [3.187886570833, 0.0, 0.0]
+bounding_box_m = [-0.521817131284, -3.605900530797, -7.211800961595, 5.2000001, 3.605900530797, 7.211800961595]
+boundary_surface_count = 6
+
+[measurement]
+name = "turning_section_outlet"
+semantic_role = "turning_section_outlet"
+kind = "measurement_surface"
+dimension = 2
+solver_boundary = false
+create_physical_group = false
+postprocess_only = true
+fingerprint_id = "57fb8c8f8f08ec4e5beac3bfd899aabc8c8b95086881304f1abbb5c30a96b2e5"
+confirmed_measurement_candidate_id = "measurement_loop_1e3f5f1668ebcdbb"
+derived_boundary_fingerprint_id = "287e0bdb2c446a1e088ce64ae411dd228bc36214b716ec381436ab8916fdb9ca"
+
+[measurement.geometry]
+plane_axis = "x"
+plane_coordinate_m = 3.77
+normal_unit = [1.0, 0.0, 0.0]
+bounds_m = [3.77, -0.06, -0.05999924863, 3.77, 0.06, 0.05999924863]
+area_m2 = 0.011309218033
+closed = true
+
+[policy]
+runtime_entity_identifiers_present = false
+step_names_present = false
+solver_boundary_groups_complete = true
+external_surface_members_disjoint_and_exhaustive = true
+measurement_is_physical_group = false
+measurement_is_solver_boundary = false
+pipeline_geometry_is_brep = true

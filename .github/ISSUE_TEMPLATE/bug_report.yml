@@ -1,0 +1,86 @@
+name: 可复现缺陷报告
+description: 报告 cfdpipe、Gmsh/SU2/pvbatch 桥接或证据链中的可复现问题
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先运行 `python scripts/repro/verify_repository.py`。不要上传客户 CAD、生产网格、restart、解文件、许可证信息或含敏感绝对路径的日志。
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: 失败阶段
+      options:
+        - 离线仓库预检
+        - 工具路径解析
+        - Python → Gmsh
+        - Gmsh → SU2 网格
+        - Python → SU2_CFD
+        - SU2 → 可视化文件
+        - Python → pvbatch
+        - pvbatch → JSON/CSV
+        - 几何/marker 质量门
+        - 网格/RANS 质量门
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境与版本证据
+      description: 操作系统、Python、Gmsh Python API/CLI、SU2_CFD、SU2_SOL（若有）及 pvbatch 版本；路径可脱敏，但请说明路径解析来源。
+      placeholder: |
+        OS: Windows 11
+        Python: 3.13.x
+        Gmsh: ...
+        SU2_CFD: ...
+        pvbatch: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: 最小复现命令
+      description: 提供从仓库根目录执行的参数列表形式命令；删除用户名、令牌和客户路径。
+      render: powershell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果与返回码
+      description: 包含首次失败阶段、返回码和未被调用的下游阶段。
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 可公开的 manifest 与日志摘录
+      description: 提供相对路径、SHA-256 和必要的关键行；保留原始 stderr，但先确认其中没有敏感信息。
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我没有上传客户 CAD、生产工件、密钥或许可证文件。
+          required: true
+        - label: 我没有通过修改 marker/边界定义或放宽质量阈值来绕过失败。
+          required: true
+        - label: 该问题能在命令行复现，且没有依赖 GUI 点击。
+          required: true

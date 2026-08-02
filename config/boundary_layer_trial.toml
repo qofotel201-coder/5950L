@@ -1,0 +1,39 @@
+schema = "cfdpipe.boundary_layer_trial.v1"
+status = "CONFIGURED"
+
+[policy]
+local_wall_patch_only = true
+production_mesh_eligible = false
+run_su2 = false
+run_paraview = false
+runtime_tags_present = false
+max_3d_elements = 300000
+
+[provenance]
+project_sha256 = "96ec212caea5b76816adb5089ab77b97d77d131461ad854615940d52e4b3bd1c"
+cases_sha256 = "c27cb7b8b70b04fbfcec1f2cef4be66510672377258f09dc13ba4f93af137435"
+markers_sha256 = "a249c79b9167c782cfa8dbde8632b0fc6e9ca61bda84ae76f475eccf3722fa8e"
+pipeline_brep_sha256 = "13698e9afb96ac21205c31d8a23f718adece802fda51ed1a67857ba73379e121"
+
+[selection]
+case_id = "M50_H21_A8_B0"
+surface_fingerprint_id = "f635f5d86c87aeb266b584dcf5f5447ee16ec8b9eb393045a0abb826584b2f39"
+required_marker_kind = "wall"
+
+[estimator]
+skin_friction_correlation = "turbulent_flat_plate_cf_0p026_re_x_minus_one_seventh"
+# Empirical y+ correction from the hash-bound corrected-mesh 200-step SST diagnostic:
+# runs/rans_smoke/yplus_corrected_diagnostic200_001/paraview/rans_diagnostics.json
+# SHA256=8e6acd5c52534642d2aff398acbd3de443845804beaffe2518def60e4a617b25
+# observed max y+=1.03076422214508 at safety factor 0.125.  Use the existing
+# fail-closed lower bound of 0.1 for margin below the strict project maximum 1.0.
+height_safety_factor = 0.1
+target_yplus_source = "project.physics.target_yplus"
+reference_length_source = "project.reference.length_m"
+
+[mesh]
+surface_size_m = 0.05
+layer_count_source = "project.mesh.minimum_prism_layers"
+growth_ratio_source = "project.mesh.initial_growth_ratio"
+element_order = 1
+recombine = true

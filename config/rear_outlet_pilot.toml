@@ -1,0 +1,35 @@
+schema = "cfdpipe.rear_outlet_pilot.v1"
+status = "APPROVED_FOR_CONNECTION_ONLY"
+
+[approval]
+authority = "project_owner"
+approved_at_utc = "2026-08-01T13:19:09.5742858Z"
+decision = "implement_recommended_provisional_supersonic_connection_pilot"
+
+[provenance]
+project_sha256 = "96ec212caea5b76816adb5089ab77b97d77d131461ad854615940d52e4b3bd1c"
+cases_sha256 = "c27cb7b8b70b04fbfcec1f2cef4be66510672377258f09dc13ba4f93af137435"
+markers_sha256 = "a249c79b9167c782cfa8dbde8632b0fc6e9ca61bda84ae76f475eccf3722fa8e"
+topology_smoke_sha256 = "af7729efc84eb6016b5cb2ddb587ee3dad1e5dcf320ae9d534ff71eefca934f4"
+source_step_sha256 = "d7d1cbec76ccc6b45aad5689d61a28c41e1ba41b9cda6c90d46eb6ff891c1a6b"
+
+[scope]
+case_id = "M50_H21_A8_B0"
+mesh_level = "smoke"
+solver = "EULER"
+nproc = 1
+max_iterations = 5
+gpu_enabled = false
+connection_only = true
+production_eligible = false
+physical_interpretation_allowed = false
+
+[rear_outlet_boundary]
+project_mode_required = "TBD_AFTER_SUPERSONIC_PILOT"
+pilot_mode = "PROVISIONAL_SUPERSONIC_PILOT"
+su2_option = "MARKER_SUPERSONIC_OUTLET"
+roles = ["rear_outlet_1", "rear_outlet_2"]
+boundary_mode_frozen = false
+allow_static_pressure = false
+allow_back_pressure = false
+validation_status = "NOT_EVALUATED_BY_CONNECTION_PILOT"

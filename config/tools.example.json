@@ -1,0 +1,10 @@
+{
+  "allow_mnt_c_executables": false,
+  "tools": {
+    "gmsh": null,
+    "su2_cfd": null,
+    "su2_sol": null,
+    "mpiexec": null,
+    "pvbatch": null
+  }
+}
