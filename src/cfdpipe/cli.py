@@ -791,6 +791,23 @@ def build_parser() -> argparse.ArgumentParser:
         handler=_handle_pipeline_coarse_mesh_calibrate
     )
 
+    production_coarse_mesh = pipeline_sub.add_parser(
+        "production-coarse-mesh",
+        help="build one 60-layer production coarse mesh from a frozen Pilot PASS",
+    )
+    production_coarse_mesh.add_argument(
+        "--config", type=Path, default=DEFAULT_COARSE_MESH_CONFIG
+    )
+    production_coarse_mesh.add_argument("--pilot-manifest", type=Path, required=True)
+    production_coarse_mesh.add_argument("--pilot-sha256", required=True)
+    production_coarse_mesh.add_argument("--family-plan", type=Path, required=True)
+    production_coarse_mesh.add_argument("--family-plan-sha256", required=True)
+    production_coarse_mesh.add_argument("--volume-scale", type=float, required=True)
+    production_coarse_mesh.add_argument("--output", type=Path, required=True)
+    production_coarse_mesh.set_defaults(
+        handler=_handle_pipeline_production_coarse_mesh
+    )
+
     rans_smoke = pipeline_sub.add_parser(
         "rans-smoke",
         help="run a bounded serial first-order SST RANS and y+ quality gate",
@@ -5660,6 +5677,30 @@ def _handle_pipeline_coarse_mesh_calibrate(args: argparse.Namespace) -> int:
         }
     )
     return 0
+
+
+def _handle_pipeline_production_coarse_mesh(args: argparse.Namespace) -> int:
+    """Run the explicit frozen-Pilot production worker in the current process."""
+
+    from .production_coarse_worker import main as production_main
+
+    worker_argv = [
+        "--config",
+        str(args.config),
+        "--pilot-manifest",
+        str(args.pilot_manifest),
+        "--pilot-sha256",
+        str(args.pilot_sha256),
+        "--family-plan",
+        str(args.family_plan),
+        "--family-plan-sha256",
+        str(args.family_plan_sha256),
+        "--volume-scale",
+        format(float(args.volume_scale), ".17g"),
+        "--output",
+        str(args.output),
+    ]
+    return production_main(worker_argv)
 
 
 def _handle_pipeline_rans_smoke(args: argparse.Namespace) -> int:

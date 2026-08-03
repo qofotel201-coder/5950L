@@ -1092,6 +1092,98 @@ def make_coarse_strategy_config(
     return base
 
 
+def make_production_coarse_strategy_config(
+    contract: Mapping[str, Any],
+    frozen_pilot_manifest: Mapping[str, Any],
+    *,
+    volume_regions: Sequence[Mapping[str, Any]],
+    maximum_3d_elements: int,
+) -> dict[str, Any]:
+    """Promote one strict Pilot PASS into a write-capable core-only build.
+
+    The embedded audit strategy remains the machine source for the 60-layer
+    schedule and coupled direction repair.  Production adds only a dimension-3
+    size policy and an output cap; it does not alter the h=0.4 wall topology.
+    """
+
+    contract_sha = str(contract.get("normalized_config_sha256", ""))
+    discovery = frozen_pilot_manifest.get("repair_discovery")
+    final_quality = (
+        discovery.get("final_quality") if isinstance(discovery, Mapping) else None
+    )
+    selected = (
+        discovery.get("selected_direction_field")
+        if isinstance(discovery, Mapping)
+        else None
+    )
+    strategy = frozen_pilot_manifest.get("strategy_config")
+    strategy_provenance = (
+        strategy.get("provenance") if isinstance(strategy, Mapping) else None
+    )
+    contract_provenance = contract.get("provenance")
+    portable_contract_match = bool(
+        isinstance(strategy_provenance, Mapping)
+        and isinstance(contract_provenance, Mapping)
+        and all(
+            contract_provenance.get(key) == value
+            for key, value in strategy_provenance.items()
+        )
+    )
+    if (
+        frozen_pilot_manifest.get("schema")
+        != "cfdpipe.coarse_repair_audit_manifest.v1"
+        or frozen_pilot_manifest.get("status") != "PASS"
+        or frozen_pilot_manifest.get("audit_only") is not True
+        or frozen_pilot_manifest.get("mesh_written") is not False
+        or (
+            frozen_pilot_manifest.get("coarse_contract_sha256") != contract_sha
+            and not portable_contract_match
+        )
+        or not isinstance(discovery, Mapping)
+        or discovery.get("status") != "PASS"
+        or discovery.get("profile_complete") is not True
+        or not isinstance(final_quality, Mapping)
+        or final_quality.get("status") != "PASS"
+        or final_quality.get("prism_below_threshold_element_count") != 0
+        or final_quality.get("nonpositive_element_count") != 0
+        or final_quality.get("nonfinite_count") != 0
+        or float(final_quality.get("minimum_prism_scaled_jacobian", 0.0))
+        < float(contract["quality"]["minimum_prism_scaled_jacobian"])
+        or not isinstance(selected, Mapping)
+        or selected.get("changed_root_count") != 8
+        or not isinstance(strategy, Mapping)
+    ):
+        raise CoarseMeshError("frozen Pilot manifest is not a strict coupled PASS")
+    normalized = copy.deepcopy(dict(strategy))
+    configured_hash = normalized.pop("normalized_config_sha256", None)
+    if not isinstance(configured_hash, str) or _canonical_hash(normalized) != configured_hash:
+        raise CoarseMeshError("frozen Pilot strategy hash is stale")
+    if (
+        normalized.get("layer_count") != 60
+        or normalized.get("repair_audit_only") is not True
+        or normalized.get("contract_mode") != "coarse_repair_audit_only"
+        or normalized.get("characteristic_length_m") != 0.4
+    ):
+        raise CoarseMeshError("frozen Pilot strategy does not preserve the 60-layer h=0.4 topology")
+    cap = _positive_int(maximum_3d_elements, "production maximum 3D elements")
+    target_range = contract.get("target_element_range")
+    if (
+        not isinstance(target_range, list)
+        or len(target_range) != 2
+        or cap < int(target_range[1])
+    ):
+        raise CoarseMeshError("production element cap is below the target range")
+    normalized.update(
+        {
+            "production_replay_after_audit": True,
+            "production_volume_regions": copy.deepcopy(list(volume_regions)),
+            "max_3d_elements": cap,
+        }
+    )
+    normalized["normalized_config_sha256"] = _canonical_hash(normalized)
+    return normalized
+
+
 def _peak_working_set_bytes() -> int | None:
     """Return this worker's peak resident set using only the standard library."""
 
@@ -1239,6 +1331,8 @@ def build_coarse_calibration(
     projection_evidence: Mapping[str, Any] | None = None,
     gmsh_module: Any | None = None,
     controller_argv: list[str] | tuple[str, ...] = (),
+    production_strategy_config: Mapping[str, Any] | None = None,
+    production_target_range: tuple[int, int] | None = None,
 ) -> dict[str, Any]:
     """Generate one hash-bound calibration mesh in two fresh Gmsh sessions.
 
@@ -1247,6 +1341,17 @@ def build_coarse_calibration(
     hard quality gates and the independent streaming SU2 audit all pass.
     """
 
+    production_mode = production_strategy_config is not None
+    if production_mode:
+        if (
+            production_target_range is None
+            or len(production_target_range) != 2
+            or production_target_range[0] <= 0
+            or production_target_range[0] > production_target_range[1]
+        ):
+            raise CoarseMeshError("production target range is invalid")
+    elif production_target_range is not None:
+        raise CoarseMeshError("calibration must not receive a production range")
     configured_lengths = contract.get("calibration_characteristic_lengths_m")
     if not isinstance(configured_lengths, list) or not configured_lengths:
         raise CoarseMeshError(
@@ -1257,11 +1362,13 @@ def build_coarse_calibration(
         "first configured calibration characteristic length",
         positive=True,
     )
-    if not isinstance(projection_evidence, Mapping):
+    if not production_mode and not isinstance(projection_evidence, Mapping):
         raise CoarseMeshError(
             "coarse calibration requires explicit projection evidence"
         )
     try:
+        if production_mode:
+            raise StopIteration
         projected_count = _positive_int(
             projection_evidence.get("projected_3d_elements"),
             "projected 3D element count",
@@ -1279,22 +1386,39 @@ def build_coarse_calibration(
             expected_characteristic_length_m=first_characteristic,
             expected_projected_3d_elements=projected_count,
         )
+    except StopIteration:
+        projected_count = 0
+        validated_projection = None
     except (CoarseProjectionEvidenceError, KeyError, CoarseMeshError) as error:
         raise CoarseMeshError(
             f"coarse projection evidence is invalid: {error}"
         ) from error
-    is_first_point = math.isclose(
+    is_first_point = not production_mode and math.isclose(
         float(characteristic_length_m),
         first_characteristic,
         rel_tol=1.0e-12,
         abs_tol=0.0,
     )
 
-    strategy_config = make_coarse_strategy_config(
-        contract,
-        characteristic_length_m,
-        local_schedule_binding=local_schedule_binding,
-    )
+    if production_mode:
+        strategy_config = copy.deepcopy(dict(production_strategy_config))
+        configured_strategy_hash = strategy_config.get("normalized_config_sha256")
+        unsigned_strategy = dict(strategy_config)
+        unsigned_strategy.pop("normalized_config_sha256", None)
+        if (
+            not isinstance(configured_strategy_hash, str)
+            or _canonical_hash(unsigned_strategy) != configured_strategy_hash
+            or strategy_config.get("production_replay_after_audit") is not True
+            or strategy_config.get("repair_audit_only") is not True
+            or strategy_config.get("layer_count") != 60
+        ):
+            raise CoarseMeshError("production frozen-replay strategy is invalid")
+    else:
+        strategy_config = make_coarse_strategy_config(
+            contract,
+            characteristic_length_m,
+            local_schedule_binding=local_schedule_binding,
+        )
     source = Path(str(contract["pipeline_brep_path"])).resolve(strict=True)
     if (
         not source.is_file()
@@ -1318,10 +1442,16 @@ def build_coarse_calibration(
         "read_only": _is_read_only(source),
     }
     manifest: dict[str, Any] = {
-        "schema": "cfdpipe.coarse_mesh_calibration_manifest.v1",
+        "schema": (
+            "cfdpipe.production_coarse_mesh_manifest.v1"
+            if production_mode
+            else "cfdpipe.coarse_mesh_calibration_manifest.v1"
+        ),
         "status": "FAIL",
-        "calibration_only": True,
-        "production_mesh_eligible": False,
+        "calibration_only": not production_mode,
+        "production_mesh_eligible": production_mode,
+        "production_mode": production_mode,
+        "target_element_range": list(production_target_range) if production_mode else None,
         "su2_called": False,
         "paraview_called": False,
         "external_commands": [],
@@ -1425,7 +1555,11 @@ def build_coarse_calibration(
             raise CoarseMeshError("Gmsh did not write a nonempty calibration MSH")
         serialized = audit_su2_mesh(
             su2_path,
-            target_element_range=(1, int(strategy_config["max_3d_elements"])),
+            target_element_range=(
+                production_target_range
+                if production_mode
+                else (1, int(strategy_config["max_3d_elements"]))
+            ),
             expected_markers=contract["solver_marker_names"],
         )
         manifest["su2_validation"] = serialized
@@ -1592,8 +1726,18 @@ def build_coarse_calibration(
             "traceback": rendered,
         }
         log_lines.append(f"[{manifest['ended_at_utc']}] status=FAIL")
-    _write_new_text(staging / "gmsh_coarse_calibration.log", "\n".join(log_lines) + "\n")
-    _write_new_json(staging / "coarse_calibration_manifest.json", manifest)
+    log_name = (
+        "gmsh_production_coarse_mesh.log"
+        if production_mode
+        else "gmsh_coarse_calibration.log"
+    )
+    manifest_name = (
+        "production_coarse_mesh_manifest.json"
+        if production_mode
+        else "coarse_calibration_manifest.json"
+    )
+    _write_new_text(staging / log_name, "\n".join(log_lines) + "\n")
+    _write_new_json(staging / manifest_name, manifest)
     staging.rename(output)
     if primary is not None:
         if isinstance(primary, (KeyboardInterrupt, SystemExit)):
@@ -1608,5 +1752,6 @@ __all__ = [
     "CoarseMeshError",
     "build_coarse_calibration",
     "make_coarse_strategy_config",
+    "make_production_coarse_strategy_config",
     "normalize_coarse_mesh_config",
 ]

@@ -13350,6 +13350,119 @@ class RealProjectBoundaryLayerStrategy:
         return dict(self._phase_evidence.get(phase, {}))
 
     @staticmethod
+    def _configure_production_volume_sizes(
+        gmsh: Any, config: Mapping[str, Any]
+    ) -> dict[str, Any] | None:
+        """Install a volume-only size callback without remeshing wall faces.
+
+        The frozen Pilot repair is tied to the h=0.4 wall triangulation.  A
+        production core may therefore be refined only for dimension three;
+        returning the incoming size for curves and surfaces preserves every
+        stable wall root consumed by the frozen direction/schedule evidence.
+        """
+
+        raw = config.get("production_volume_regions")
+        if raw is None:
+            return None
+        if not isinstance(raw, Sequence) or isinstance(raw, (str, bytes)):
+            raise BoundaryLayerSmokeError(
+                "production volume regions must be an ordered list"
+            )
+        regions: list[dict[str, Any]] = []
+        for index, item in enumerate(raw):
+            if not isinstance(item, Mapping) or set(item) != {
+                "name",
+                "bounds_m",
+                "size_m",
+                "transition_width_m",
+            }:
+                raise BoundaryLayerSmokeError(
+                    f"production volume region {index} is incomplete"
+                )
+            name = str(item.get("name", "")).strip()
+            bounds = item.get("bounds_m")
+            if (
+                not name
+                or not isinstance(bounds, Sequence)
+                or isinstance(bounds, (str, bytes))
+                or len(bounds) != 6
+            ):
+                raise BoundaryLayerSmokeError(
+                    f"production volume region {index} bounds are invalid"
+                )
+            parsed = [
+                _finite(value, f"production volume region {index} bound")
+                for value in bounds
+            ]
+            if any(parsed[axis] >= parsed[axis + 3] for axis in range(3)):
+                raise BoundaryLayerSmokeError(
+                    f"production volume region {index} bounds are empty"
+                )
+            size = _finite(
+                item.get("size_m"), f"production volume region {index} size"
+            )
+            if size <= 0.0:
+                raise BoundaryLayerSmokeError(
+                    f"production volume region {index} size is not positive"
+                )
+            transition = _finite(
+                item.get("transition_width_m"),
+                f"production volume region {index} transition width",
+            )
+            if transition <= 0.0:
+                raise BoundaryLayerSmokeError(
+                    f"production volume region {index} transition is not positive"
+                )
+            regions.append(
+                {
+                    "name": name,
+                    "bounds_m": parsed,
+                    "size_m": size,
+                    "transition_width_m": transition,
+                }
+            )
+        if not regions:
+            raise BoundaryLayerSmokeError("production volume regions are empty")
+
+        def volume_size(
+            dimension: int,
+            _tag: int,
+            x: float,
+            y: float,
+            z: float,
+            incoming_size: float,
+        ) -> float:
+            if int(dimension) != 3:
+                return float(incoming_size)
+            selected = float(incoming_size)
+            for region in regions:
+                xmin, ymin, zmin, xmax, ymax, zmax = region["bounds_m"]
+                offsets = (
+                    max(xmin - x, 0.0, x - xmax),
+                    max(ymin - y, 0.0, y - ymax),
+                    max(zmin - z, 0.0, z - zmax),
+                )
+                distance = math.sqrt(sum(value * value for value in offsets))
+                width = float(region["transition_width_m"])
+                if distance <= width:
+                    fraction = min(1.0, distance / width)
+                    local_size = float(region["size_m"]) + fraction * (
+                        float(incoming_size) - float(region["size_m"])
+                    )
+                    selected = min(selected, local_size)
+            return selected
+
+        gmsh.model.mesh.setSizeCallback(volume_size)
+        return {
+            "schema": "cfdpipe.production_volume_regions.v1",
+            "status": "CONFIGURED",
+            "dimension_3_only": True,
+            "wall_surface_triangulation_preserved": True,
+            "regions": regions,
+            "regions_sha256": _canonical_hash({"regions": regions}),
+        }
+
+    @staticmethod
     def _layer_schedule(config: Mapping[str, Any], sign: int) -> list[float]:
         height = _finite(config.get("first_layer_height_m"), "first layer height")
         growth = _finite(config.get("growth_ratio"), "growth ratio")
@@ -13859,6 +13972,7 @@ class RealProjectBoundaryLayerStrategy:
         fluid_group = gmsh.model.addPhysicalGroup(3, all_fluid_volumes)
         gmsh.model.setPhysicalName(3, fluid_group, fluid_name)
         gmsh.model.mesh.generate(3)
+        production_volume_regions = None
         if normalized_config.get("projection_only") is True:
             if normalized_config.get("contract_mode") != "coarse_projection_only":
                 raise BoundaryLayerSmokeError(
@@ -13905,6 +14019,13 @@ class RealProjectBoundaryLayerStrategy:
                 audit_only=repair_audit_only,
             )
         )
+        production_replay_after_audit = (
+            normalized_config.get("production_replay_after_audit") is True
+        )
+        if production_replay_after_audit and not repair_audit_only:
+            raise BoundaryLayerSmokeError(
+                "production replay requires the strict repair-audit path"
+            )
         if repair_audit_only:
             expected_audit_schema = _expected_repair_audit_schema(
                 normalized_config
@@ -13931,11 +14052,82 @@ class RealProjectBoundaryLayerStrategy:
                 "repair_audit_only": True,
                 "local_refinement": refinement_audit,
                 "mesh_options": fixed_options,
+                "production_volume_regions": production_volume_regions,
                 "post_mesh_repair": post_mesh_repair_evidence,
                 "mesh_written": False,
                 "formal_quality_conclusion": "NOT_AUTHORIZED",
             }
-            return post_mesh_repair_evidence
+            if not production_replay_after_audit:
+                return post_mesh_repair_evidence
+            final_quality = post_mesh_repair_evidence.get("final_quality")
+            if (
+                post_mesh_repair_evidence.get("status") != "PASS"
+                or not isinstance(final_quality, Mapping)
+                or final_quality.get("status") != "PASS"
+                or int(final_quality.get("prism_below_threshold_element_count", -1))
+                != 0
+                or int(final_quality.get("nonpositive_element_count", -1)) != 0
+                or int(final_quality.get("nonfinite_count", -1)) != 0
+            ):
+                raise BoundaryLayerSmokeError(
+                    "frozen repair replay did not finish at the strict PASS state"
+                )
+            # The Pilot evidence is tied to the original h=0.4 wall/prism
+            # topology and is therefore replayed before any production core
+            # refinement.  Only the two tetrahedral core volume meshes are
+            # cleared.  Their already-meshed boundary faces (including the
+            # repaired prism/core interface) remain fixed and conformal.
+            gmsh.model.mesh.clear([(3, core1_tag), (3, core2_tag)])
+            production_volume_regions = self._configure_production_volume_sizes(
+                gmsh, normalized_config
+            )
+            if production_volume_regions is None:
+                raise BoundaryLayerSmokeError(
+                    "production replay requires explicit volume regions"
+                )
+            gmsh.model.mesh.generate(3)
+            remeshed_records = _all_volume_records_for_entities(
+                gmsh,
+                [
+                    core1_tag,
+                    core2_tag,
+                    *[int(tag) for tag in sorted(prism_by_wall.values())],
+                ],
+            )
+            remeshed_nonprism = Counter(
+                str(record["type"])
+                for record in remeshed_records
+                if record["type"] != "Prism 6"
+            )
+            frozen_connectivity = str(
+                post_mesh_repair_plan.get("connectivity_sha256", "")
+            )
+            frozen_nonprism = copy.deepcopy(
+                post_mesh_repair_plan.get("source_nonprism_type_counts")
+            )
+            post_mesh_repair_plan["source_nonprism_type_counts"] = dict(
+                sorted(remeshed_nonprism.items())
+            )
+            post_mesh_repair_plan["connectivity_sha256"] = (
+                _mesh_connectivity_sha256(gmsh)
+            )
+            post_mesh_repair_evidence = {
+                **dict(post_mesh_repair_evidence),
+                "production_core_remesh": {
+                    "schema": "cfdpipe.production_core_remesh.v1",
+                    "status": "PASS",
+                    "prism_topology_preserved": True,
+                    "frozen_connectivity_sha256": frozen_connectivity,
+                    "production_connectivity_sha256": post_mesh_repair_plan[
+                        "connectivity_sha256"
+                    ],
+                    "frozen_nonprism_type_counts": frozen_nonprism,
+                    "production_nonprism_type_counts": dict(
+                        sorted(remeshed_nonprism.items())
+                    ),
+                    "volume_regions": production_volume_regions,
+                },
+            }
         prism_dimtags = [(3, int(tag)) for tag in sorted(prism_by_wall.values())]
         prism_quality_generation = _quality_summary_for_entities(
             gmsh, prism_dimtags, element_name="Prism 6"
@@ -13965,6 +14157,7 @@ class RealProjectBoundaryLayerStrategy:
             "max_3d_elements": int(normalized_config["max_3d_elements"]),
             "local_refinement": refinement_audit,
             "mesh_options": fixed_options,
+            "production_volume_regions": production_volume_regions,
             "prism_quality_generation": prism_quality_generation,
             "quality_improvement": dict(quality_improvement),
             "post_mesh_repair_plan": post_mesh_repair_plan,

@@ -1,0 +1,74 @@
+{
+  "schema": "cfdpipe.production_mesh_family_plan.v1",
+  "status": "CALIBRATION",
+  "mesh_family": {
+    "geometry_source": "geometry/derived/model1_shared_topology/model1_shared_topology.brep",
+    "geometry_sha256": "13698e9afb96ac21205c31d8a23f718adece802fda51ed1a67857ba73379e121",
+    "marker_contract": "config/markers.toml",
+    "boundary_layer_count": 60,
+    "first_layer_height_m": 2.7645771273320875e-07,
+    "growth_ratio": 1.2,
+    "wall_tangential_size_m": 0.4,
+    "level_size_factors": [1.0, 0.794, 0.63],
+    "physical_extents_identical_across_levels": true,
+    "actual_counts_required_for_grid_ratio_and_gci": true
+  },
+  "levels": {
+    "coarse": {"target_cells": 5000000, "minimum_cells": 4750000, "maximum_cells": 5250000, "build_authorized": true},
+    "medium": {"target_cells": 10000000, "build_authorized": false},
+    "fine": {"target_cells": 20000000, "build_authorized": false}
+  },
+  "physical_regions": [
+    {
+      "name": "farfield",
+      "bounds_m": [-0.522, -3.606, -7.212, 6.306, 3.606, 7.212],
+      "coarse_size_m": 0.18,
+      "transition_width_m": 0.5,
+      "intent": "coarsest outer-field tetrahedral core"
+    },
+    {
+      "name": "transition",
+      "bounds_m": [-0.2, -1.5, -1.5, 5.6, 1.5, 1.5],
+      "coarse_size_m": 0.12,
+      "transition_width_m": 0.5,
+      "intent": "smooth bridge between near-body and farfield sizes"
+    },
+    {
+      "name": "near_body_core",
+      "bounds_m": [-0.1, -0.8, -0.8, 5.4, 0.8, 0.8],
+      "coarse_size_m": 0.08,
+      "transition_width_m": 0.3,
+      "intent": "refined tetrahedral core adjacent to the frozen prism top"
+    },
+    {
+      "name": "internal_passage",
+      "bounds_m": [0.0, -0.36, -0.36, 5.3, 0.36, 0.36],
+      "coarse_size_m": 0.055,
+      "transition_width_m": 0.2,
+      "intent": "finest core sizing for the internal passage"
+    }
+  ],
+  "quality_gates": {
+    "minimum_prism_scaled_jacobian": 0.01,
+    "maximum_below_threshold_elements": 0,
+    "maximum_negative_volume_count": 0,
+    "maximum_nonpositive_jacobian_count": 0,
+    "maximum_nonfinite_count": 0,
+    "maximum_marker_omission_count": 0,
+    "maximum_shared_interface_error_count": 0,
+    "prism_tetra_core_conformal": true,
+    "mesh_msh_required": true,
+    "mesh_su2_required": true,
+    "su2_read_check_required": true,
+    "failure_blocks_rans": true
+  },
+  "calibration": {
+    "allowed_volume_scale_minimum": 0.5,
+    "allowed_volume_scale_maximum": 2.0,
+    "boundary_layer_reduction_allowed": false,
+    "wall_topology_change_allowed": false,
+    "pilot_replay_required_before_core_remesh": true
+  },
+  "unique_execution_entry": "CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python ./scripts/cfdpipe.sh pipeline production-coarse-mesh --pilot-manifest <PASS_PILOT_MANIFEST> --pilot-sha256 <SHA256> --family-plan reports/production_mesh_family_plan.json --family-plan-sha256 <SHA256> --volume-scale <CALIBRATED_SCALE> --output runs/mesh/coarse/<RUN_ID>",
+  "next_level_gate": "Review coarse refinement regions and all quality gates before authorizing medium or fine mesh generation"
+}
