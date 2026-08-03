@@ -9972,7 +9972,9 @@ def _run_frontier_schedule_collar(
     actual_triple_direction_sha256 = _stable_direction_field_sha256(
         roots=seed_runtime_roots,
         root_coordinates=root_coordinates,
-        directions=selected_directions,
+        directions={
+            root: selected_directions[root] for root in seed_runtime_roots
+        },
     )
     if (
         len(seed_runtime_roots) != 3
