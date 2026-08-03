@@ -2,7 +2,25 @@
 
 ## 本轮任务：AutoDL Pilot coupled direction/schedule audit-only 修复
 
-状态：进行中。以上一轮完整评估但未接受的 ring width 32 状态为显式起点，在同一局部闭包内联合调整外层累计高度与柱方向；不得降低 `0.01` Scaled Jacobian 阈值，不得修改 CAD、marker、首层高度、工况或边界条件，不写生产网格，不调用 SU2/pvbatch/RANS/CUDA。
+状态：已完成并通过。以上一轮完整评估但未接受的 ring width 32 状态为显式起点，在同一局部闭包内联合调整外层累计高度与柱方向；未降低 `0.01` Scaled Jacobian 阈值，未修改 CAD、marker、首层高度、工况或边界条件，未写生产网格，未调用 SU2/pvbatch/RANS/CUDA。
+
+### 最终状态
+
+- `REMOTE_AUTODL_L6 = PASS`
+- `PILOT_MESH_REPAIR = PASS`
+- `PILOT_REPAIR_PARAMETERS = FROZEN`
+- `PRODUCTION_COARSE_MESH = READY_TO_BUILD`
+- `RANS = DIAGNOSTIC_L6_PASS`
+- `PRODUCTION_CFD = HOLD`
+
+### 最终结果与证据
+
+- AutoDL 固定提交 `ba78d712e530167788d524f78102350252812b45` 的正式 run `autodl_coupled_repair_20260803T183059Z` 返回码为0；controller、worker isolation 与 authoritative discovery 三层状态均为 PASS，`profile_complete=true`。
+- 接受候选为 ring width 32 层高计划加9个有界方向细化；总质量评估1990次，其中原方向搜索1530次、collar 7次、coupled方向细化453次，未超过4096次上限。
+- 最小 Prism6 Scaled Jacobian 从未接受最佳值 `0.00773904276716142` 提升到 `0.010098248712453189`；阈下 Prism6 从20降为0，非正元素、非有限质量、core gamma阈下均为0。冻结阈值保持 `0.01`。
+- 本轮为 audit-only：`mesh_written=false`、`production_mesh_eligible=false`，SU2、pvbatch、CUDA均未调用；结果只冻结下一次生产粗网格构建参数，不是生产网格或生产CFD结果。
+- 远程证据位于 `/root/autodl-tmp/5950L/runs/pilot_repair/autodl_coupled_repair_20260803T183059Z` 与对应 `runs/mesh/coarse`/worker evidence；证据包为 `/root/autodl-tmp/transfer/autodl_coupled_repair_20260803T183059Z.tar.gz`。
+- 本机回传目录为 `remote_evidence/pilot_repair_autodl_coupled_repair_20260803T183059Z/`；本机复算证据包 SHA-256 为 `965595818382d44e4027751e9b8c57c804010ef7eb67ba995971fb4b594cfdb1`，解包后再次解析 manifest 为 PASS、最小质量 `0.010098248712453189`、阈下计数0。
 
 ### 目标与验收标准
 
