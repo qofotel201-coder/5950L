@@ -3871,7 +3871,8 @@ def _validate_coarse_repair_audit_pass_manifest(
         or isolated_binding.get("schema")
         != "cfdpipe.boundary_layer_local_schedule_binding.v1"
         or isolated_binding.get("status") != "PASS"
-        or isolated_binding.get("coarse_contract_sha256") != contract_sha256
+        or isolated_binding.get("coarse_contract_sha256")
+        != projection_evidence.get("coarse_contract_sha256")
         or isolated_binding.get("binding_sha256")
         != local_schedule_binding.get("binding_sha256")
         or isolated_binding.get("source_plan_path")
