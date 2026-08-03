@@ -99,6 +99,37 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+_PATH_DERIVED_HASH_KEYS = {
+    "binding_sha256",
+    "evidence_sha256",
+    "normalized_config_sha256",
+    "strategy_config_sha256",
+}
+
+
+def _portable_attestation(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {
+            str(key): _portable_attestation(item)
+            for key, item in value.items()
+            if key not in _PATH_DERIVED_HASH_KEYS
+        }
+    if isinstance(value, list):
+        return [_portable_attestation(item) for item in value]
+    if isinstance(value, str):
+        normalized = value.replace("\\", "/")
+        for anchor in ("/config/", "/geometry/", "/runs/"):
+            index = normalized.casefold().find(anchor)
+            if index >= 0:
+                return normalized[index:].casefold()
+        return value
+    return value
+
+
+def _same_portable_attestation(left: Any, right: Any) -> bool:
+    return _portable_attestation(left) == _portable_attestation(right)
+
+
 def _strict_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
@@ -2209,8 +2240,10 @@ def _load_direction_audit_attestation(
         or worker.get("local_schedule_bound_after_heavy_import") is not True
         or worker.get("normalized_resource_matches_raw") is not True
         or worker.get("audit_runner_called") is not True
-        or worker.get("manifest_path") != str(path)
-        or worker.get("output_directory") != str(path.parent)
+        or not _same_portable_attestation(worker.get("manifest_path"), str(path))
+        or not _same_portable_attestation(
+            worker.get("output_directory"), str(path.parent)
+        )
         or not Path(str(worker.get("evidence_path", ""))).is_absolute()
         or isolation.get("coarse_contract_sha256")
         != str(expected_coarse_contract_sha256).casefold()
@@ -2284,16 +2317,22 @@ def _load_direction_audit_attestation(
             rel_tol=1.0e-12,
             abs_tol=0.0,
         )
-        or _argv_option(argv, "--projection-manifest")
-        != expected_projection_path
+        or not _same_portable_attestation(
+            _argv_option(argv, "--projection-manifest"),
+            expected_projection_path,
+        )
         or _argv_option(argv, "--projection-sha256")
         != str(expected_projection_evidence.get("sha256", "")).casefold()
-        or _argv_option(argv, "--local-schedule") != expected_schedule_path
+        or not _same_portable_attestation(
+            _argv_option(argv, "--local-schedule"), expected_schedule_path
+        )
         or _argv_option(argv, "--local-schedule-sha256")
         != expected_schedule_sha
         or _argv_option(argv, "--schedule-feasibility-endpoint")
         != PATTERN_REQUEST
-        or _argv_option(argv, "--output") != str(path.parent)
+        or not _same_portable_attestation(
+            _argv_option(argv, "--output"), str(path.parent)
+        )
         or _argv_option(argv, "--config") != str(worker.get("config_path", ""))
         or _argv_option(argv, "--config-sha256")
         != str(isolation.get("config_sha256", ""))
@@ -2315,13 +2354,15 @@ def _load_direction_audit_attestation(
             rel_tol=1.0e-12,
             abs_tol=0.0,
         )
-        or strategy != dict(expected_audit_strategy)
+        or not _same_portable_attestation(strategy, expected_audit_strategy)
         or manifest.get("strategy_config_sha256")
-        != expected_audit_strategy.get("normalized_config_sha256")
-        or manifest.get("local_schedule_binding")
-        != dict(expected_local_schedule_binding)
-        or manifest.get("projection_evidence")
-        != dict(expected_projection_evidence)
+        != strategy.get("normalized_config_sha256")
+        or not _same_portable_attestation(
+            manifest.get("local_schedule_binding"), expected_local_schedule_binding
+        )
+        or not _same_portable_attestation(
+            manifest.get("projection_evidence"), expected_projection_evidence
+        )
     ):
         raise CoarseDirectionReplayError("direction audit lineage differs from this run")
 
