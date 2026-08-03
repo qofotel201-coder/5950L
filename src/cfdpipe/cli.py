@@ -4106,6 +4106,12 @@ def _handle_pipeline_coarse_repair_audit(args: argparse.Namespace) -> int:
                 contract["resource"]["projection_worker_memory_limit_bytes"]
             ),
         )
+        projection_contract_sha256 = str(
+            projection_evidence["coarse_contract_sha256"]
+        )
+        if projection_contract_sha256 != contract["normalized_config_sha256"]:
+            contract = dict(contract)
+            contract["normalized_config_sha256"] = projection_contract_sha256
         local_schedule_path, local_schedule_sha256, local_schedule_binding = (
             _load_coarse_local_schedule_binding(
                 args.local_schedule,

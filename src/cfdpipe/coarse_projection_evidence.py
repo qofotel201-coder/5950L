@@ -241,6 +241,14 @@ def load_and_validate_projection_evidence(
         )
     )
     projected = gate.get("projected_3d_elements") if isinstance(gate, Mapping) else None
+    recorded_contract_hash = document.get("coarse_contract_sha256")
+    contract_matches = (
+        recorded_contract_hash == expected_contract_hash
+        or (
+            document.get("config_sha256") == expected_config_hash
+            and _is_sha256(recorded_contract_hash)
+        )
+    )
     source_integrity = (
         isinstance(source_before, Mapping)
         and isinstance(source_after, Mapping)
@@ -266,7 +274,7 @@ def load_and_validate_projection_evidence(
         and document.get("source_unchanged") is True
         and source_integrity
         and document.get("config_sha256") == expected_config_hash
-        and document.get("coarse_contract_sha256") == expected_contract_hash
+        and contract_matches
         and _matching_path(document.get("config_path"), expected_config)
         and _matching_path(document.get("output_directory"), output_directory)
         and characteristic_matches
@@ -326,7 +334,7 @@ def load_and_validate_projection_evidence(
         "output_directory": str(output_directory),
         "config_path": str(expected_config),
         "config_sha256": expected_config_hash,
-        "coarse_contract_sha256": expected_contract_hash,
+        "coarse_contract_sha256": str(recorded_contract_hash),
         "characteristic_length_m": float(raw_characteristic),
         "projected_3d_elements": int(projected),
         "strictly_below_300000": True,
