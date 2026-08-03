@@ -802,13 +802,17 @@ def load_and_validate_physical_homotopy_audit_manifest(
 
 
 def _error_record(error: BaseException) -> dict[str, Any]:
-    return {
+    record = {
         "type": type(error).__name__,
         "message": str(error),
         "traceback": "".join(
             traceback.format_exception(type(error), error, error.__traceback__)
         ),
     }
+    evidence = getattr(error, "evidence", None)
+    if isinstance(evidence, Mapping):
+        record["evidence"] = copy.deepcopy(dict(evidence))
+    return record
 
 
 def make_coarse_repair_audit_strategy_config(
