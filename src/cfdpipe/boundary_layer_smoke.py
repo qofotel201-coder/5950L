@@ -13496,6 +13496,8 @@ class RealProjectBoundaryLayerStrategy:
         shells: dict[int, list[tuple[int, int, int]]] = {}
         shell_components: dict[int, list[list[tuple[int, int, int]]]] = {}
         shell_nodes: dict[int, set[int]] = {}
+        core_boundaries: dict[int, list[int]] = {}
+        surface_faces: dict[int, list[tuple[int, int, int]]] = {}
         for raw_core in core_volume_tags:
             core = int(raw_core)
             records = _element_records_from_gmsh(gmsh, 3, core)
@@ -13510,6 +13512,7 @@ class RealProjectBoundaryLayerStrategy:
             )
             if not boundary or any(int(dim) != 2 for dim, _tag in boundary):
                 raise BoundaryLayerSmokeError("production core shell is incomplete")
+            core_boundaries[core] = [int(tag) for _dim, tag in boundary]
             for _dimension, signed_tag in boundary:
                 surface_tag = abs(int(signed_tag))
                 reverse = int(signed_tag) < 0
@@ -13520,6 +13523,10 @@ class RealProjectBoundaryLayerStrategy:
                     raise BoundaryLayerSmokeError(
                         "production core shell requires all-Triangle3 surfaces"
                     )
+                surface_faces.setdefault(
+                    surface_tag,
+                    [tuple(int(value) for value in record["nodes"]) for record in surface_records],
+                )
                 for record in surface_records:
                     nodes = tuple(int(value) for value in record["nodes"])
                     triangles.append(
@@ -13557,77 +13564,55 @@ class RealProjectBoundaryLayerStrategy:
             for tag in prism_volume_tags
         )
         generated: dict[int, dict[str, Any]] = {}
-        for core in sorted(shells):
-            boundary_nodes = sorted(shell_nodes[core])
-            orientation_attempts: list[dict[str, Any]] = []
-            for orientation in (1, -1):
-                temporary_model = f"production_core_hxt_{core}_{orientation}"
-                gmsh.model.add(temporary_model)
-                try:
-                    triangle_type = int(gmsh.model.mesh.getElementType("triangle", 1))
-                    surfaces: list[int] = []
-                    next_triangle = 1
-                    for component in shell_components[core]:
-                        surface = int(gmsh.model.addDiscreteEntity(2))
-                        surfaces.append(surface)
-                        component_nodes = sorted({node for face in component for node in face})
-                        gmsh.model.mesh.addNodes(
-                            2,
-                            surface,
-                            component_nodes,
-                            [value for node in component_nodes for value in coordinates[node]],
-                        )
-                        faces = [
-                            face if orientation == 1 else (face[0], face[2], face[1])
-                            for face in component
-                        ]
-                        tags = list(range(next_triangle, next_triangle + len(faces)))
-                        next_triangle += len(faces)
-                        gmsh.model.mesh.addElementsByType(
-                            surface,
-                            triangle_type,
-                            tags,
-                            [node for face in faces for node in face],
-                        )
-                    volume = int(gmsh.model.addDiscreteEntity(3, boundary=surfaces))
-                    gmsh.option.setNumber("Mesh.Algorithm3D", 10)
-                    RealProjectBoundaryLayerStrategy._configure_production_volume_sizes(
-                        gmsh, config
+        gmsh.model.add("production_connected_cores_hxt")
+        try:
+            triangle_type = int(gmsh.model.mesh.getElementType("triangle", 1))
+            surface_map: dict[int, int] = {}
+            classified_nodes: set[int] = set()
+            next_triangle = 1
+            for original_surface in sorted(surface_faces):
+                surface = int(gmsh.model.addDiscreteEntity(2))
+                surface_map[original_surface] = surface
+                faces = surface_faces[original_surface]
+                nodes = sorted({node for face in faces for node in face} - classified_nodes)
+                classified_nodes.update(nodes)
+                if nodes:
+                    gmsh.model.mesh.addNodes(
+                        2, surface, nodes,
+                        [value for node in nodes for value in coordinates[node]],
                     )
-                    gmsh.model.mesh.generate(3)
-                    gmsh.model.mesh.removeSizeCallback()
-                    records = _element_records_from_gmsh(gmsh, 3, volume)
-                    all_tet4 = bool(records) and all(
-                        record["type"] == "Tetrahedron 4" for record in records
-                    )
-                    orientation_attempts.append(
-                        {
-                            "orientation": orientation,
-                            "volume_element_count": len(records),
-                            "all_tetrahedron_4": all_tet4,
-                        }
-                    )
-                    if all_tet4:
-                        temp_coordinates = _nodes_from_gmsh(gmsh)
-                        generated[core] = {
-                            "records": [
-                                tuple(int(node) for node in record["nodes"])
-                                for record in records
-                            ],
-                            "coordinates": temp_coordinates,
-                            "boundary_nodes": set(boundary_nodes),
-                            "orientation": orientation,
-                            "orientation_attempts": orientation_attempts,
-                        }
-                finally:
-                    gmsh.model.remove()
-                    gmsh.model.setCurrent(main_model)
-                if core in generated:
-                    break
-            if core not in generated:
-                raise BoundaryLayerSmokeError(
-                    "HXT core output is not all-Tet4 for either shell orientation"
+                tags = list(range(next_triangle, next_triangle + len(faces)))
+                next_triangle += len(faces)
+                gmsh.model.mesh.addElementsByType(
+                    surface, triangle_type, tags,
+                    [node for face in faces for node in face],
                 )
+            volume_map: dict[int, int] = {}
+            for core in sorted(core_boundaries):
+                mapped = [
+                    (1 if tag > 0 else -1) * surface_map[abs(tag)]
+                    for tag in core_boundaries[core]
+                ]
+                volume_map[core] = int(gmsh.model.addDiscreteEntity(3, boundary=mapped))
+            gmsh.option.setNumber("Mesh.Algorithm3D", 10)
+            RealProjectBoundaryLayerStrategy._configure_production_volume_sizes(gmsh, config)
+            gmsh.model.mesh.generate(3)
+            gmsh.model.mesh.removeSizeCallback()
+            temp_coordinates = _nodes_from_gmsh(gmsh)
+            for core, volume in volume_map.items():
+                records = _element_records_from_gmsh(gmsh, 3, volume)
+                if not records or any(record["type"] != "Tetrahedron 4" for record in records):
+                    raise BoundaryLayerSmokeError("connected HXT core output is not all-Tet4")
+                generated[core] = {
+                    "records": [tuple(int(node) for node in record["nodes"]) for record in records],
+                    "coordinates": temp_coordinates,
+                    "boundary_nodes": set(shell_nodes[core]),
+                    "orientation": 1,
+                    "orientation_attempts": [{"orientation": 1, "volume_element_count": len(records), "all_tetrahedron_4": True}],
+                }
+        finally:
+            gmsh.model.remove()
+            gmsh.model.setCurrent(main_model)
 
         gmsh.model.mesh.clear([(3, int(tag)) for tag in core_volume_tags])
         next_node = int(gmsh.model.mesh.getMaxNodeTag()) + 1
