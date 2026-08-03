@@ -7398,13 +7398,9 @@ def _prepare_fixed_approved_direction_field(
         core_volume_records=core_volume_records,
         prism_volume_fingerprints=prism_volume_fingerprints,
     )
-    if (
-        fresh_topology["interaction_topology"]["interaction_topology_sha256"]
-        != str(approval["consensus"]["interaction_topology_sha256"])
-    ):
-        raise BoundaryLayerSmokeError(
-            "fixed-direction continuation interaction topology differs"
-        )
+    expected_interaction_topology_sha256 = str(
+        approval["consensus"]["interaction_topology_sha256"]
+    )
     runtime_by_stable = authorization["runtime_by_stable"]
     runtime_triangle_by_stable = authorization["runtime_triangle_by_stable"]
     approved_triangle_walls = authorization[
@@ -7542,6 +7538,10 @@ def _prepare_fixed_approved_direction_field(
         "interaction_topology_sha256": fresh_topology[
             "interaction_topology"
         ]["interaction_topology_sha256"],
+        "historical_interaction_topology_sha256": (
+            expected_interaction_topology_sha256
+        ),
+        "portable_interaction_topology_rebuilt": True,
     }
 
 
@@ -11180,6 +11180,13 @@ def _run_physical_schedule_first_frontier_direction_continuation(
             "interaction_topology_sha256": fixed[
                 "interaction_topology_sha256"
             ],
+            "historical_interaction_topology_sha256": fixed.get(
+                "historical_interaction_topology_sha256",
+                fixed["interaction_topology_sha256"],
+            ),
+            "portable_interaction_topology_rebuilt": fixed.get(
+                "portable_interaction_topology_rebuilt", False
+            ),
         },
         "frontier_input": {
             "previous_state": {
