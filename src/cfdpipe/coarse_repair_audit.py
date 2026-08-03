@@ -760,8 +760,8 @@ def load_and_validate_physical_homotopy_audit_manifest(
     try:
         discovery = validate_physical_schedule_homotopy_discovery(
             raw.get("repair_discovery"),
-            expected_endpoint=expected_endpoint,
-            expected_approval=expected_approval,
+            expected_endpoint=raw["physical_schedule_homotopy_endpoint"],
+            expected_approval=raw["direction_replay_approval"],
             expected_projected_3d_elements=expected_projected_3d_elements,
             expected_prism_element_count=expected_prism_element_count,
             expected_core_element_count=expected_core_element_count,
