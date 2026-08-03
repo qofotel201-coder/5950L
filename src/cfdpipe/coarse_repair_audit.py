@@ -1288,7 +1288,10 @@ def _validate_repair_audit_strategy_config(
                 validate_physical_schedule_homotopy_endpoint(
                     raw_homotopy,
                     expected_binding_sha256=str(
-                        validated_binding.get("binding_sha256", "")
+                        expected_direction_replay_approval.get(
+                            "local_schedule_binding_sha256",
+                            validated_binding.get("binding_sha256", ""),
+                        )
                     ),
                     expected_first_layer_height_m=float(
                         design.get("first_layer_height_m")
