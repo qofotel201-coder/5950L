@@ -10449,10 +10449,24 @@ def _run_frontier_schedule_collar(
             for record in candidate_records
             for reason in record["unsafe_reasons"]
         )
-        raise BoundaryLayerSmokeError(
+        error = BoundaryLayerSmokeError(
             "frontier collar has no lineage- and preservation-safe candidate: "
             f"unsafe_reason_counts={dict(sorted(reason_counts.items()))}"
         )
+        error.evidence = {
+            "schema": "cfdpipe.frontier_collar_candidate_rejection.v1",
+            "status": "FAIL",
+            "candidate_count": len(candidate_records),
+            "quality_evaluation_count": pattern_count + len(candidate_records),
+            "maximum_quality_evaluations": maximum_total,
+            "within_evaluation_cap": (
+                pattern_count + len(candidate_records)
+                <= maximum_total
+            ),
+            "unsafe_reason_counts": dict(sorted(reason_counts.items())),
+            "candidate_records": candidate_records,
+        }
+        raise error
 
     def closure_rank(record: Mapping[str, Any]) -> tuple[Any, ...]:
         return (
