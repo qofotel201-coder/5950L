@@ -2,7 +2,34 @@
 
 ## 本轮任务：AutoDL L4 私有输入门与 L5 真实项目小型连接复现
 
-状态：进行中；仅传输两个冻结哈希绑定的私有几何输入并执行严格私有输入门、无边界层 topology-smoke 网格、五步串行 Euler 和 pvbatch 连接验证。不运行边界层、Pilot修复、RANS或生产网格，不启用CUDA，不作物理解读。
+状态：已完成；AutoDL L4严格私有输入门和L5真实项目小型连接均为PASS。不运行边界层、Pilot修复、RANS或生产网格，不启用CUDA，不作物理解读。Linux平台仍不是完整生产VERIFIED。
+
+### 最终状态
+
+- `PRIVATE_INPUTS = TRANSFERRED_VERIFIED`
+- `REAL_PROJECT_L5 = PASS`
+- `HISTORICAL_EVIDENCE = PLANNED_NOT_TRANSFERRED`
+- `PILOT_MESH_REPAIR = HOLD`
+- `RANS = HOLD`
+- `PRODUCTION_CFD = HOLD`
+
+### 实施与验证结果
+
+- 本机与AutoDL的只读STEP（2,553,767字节）和共享拓扑BREP（3,028,066字节）分别严格匹配冻结SHA-256 `d7d1cb…1a6b` 与 `13698e…e121`；均为普通文件、非链接、Git忽略且未跟踪，远端模式为0444。
+- L4以固定Git提交运行 `verify_repository.py --require-private-inputs`，35/35检查PASS、返回码0、stderr为空；命令、cwd、SHA、UTC、stdout/stderr与哈希进入唯一证据目录。
+- 初次L5安全暴露可移植性缺陷：运行时marker验证强制依赖四个生成期历史JSON。最小修复保留完整marker结构/完整性摘要、project/STEP/BREP直接路径与哈希以及运行时几何指纹检查，仅将缺失生成期provenance明确延期；存在但错误的历史文件仍拒绝。新增回归后全部本地门PASS。
+- 冻结后部出口合同在SU2前要求其明确列名、哈希绑定的8个小型JSON。仅传输这8个L5必需JSON并逐项验哈希、设只读；未传mesh、restart、VTU、完整runs目录，也未执行历史Euler/RANS。冻结评估PASS且保持 `MARKER_SUPERSONIC_OUTLET`、不设置静压/背压。
+- 最终L5生成无边界层topology-smoke网格：9,047点、39,299个四面体、4个完整marker、2个共享面，非正Jacobian/质量/体积计数均为0；串行SU2五步返回0并输出当前run VTU，pvbatch读取后生成当前run JSON/CSV。
+- `step_to_gmsh`、`gmsh_to_su2_mesh`、`mesh_to_su2`、`su2_to_visualization`、`visualization_to_pvbatch`、`pvbatch_to_results` 六段及overall全部PASS。五步Euler仅用于软件连接，不作载荷、压力、流量或气动性能解释。
+- 下一阶段历史证据计划只列最小JSON及重建建议，未传输其中剩余L6/Pilot证据；边界层、Pilot修复、RANS、生产网格和CUDA均未启动。
+
+### 下一阶段唯一入口
+
+```bash
+cd /root/autodl-tmp/5950L && /root/autodl-tmp/envs/cfdpipe/bin/python -m cfdpipe gmsh inspect --help
+```
+
+该命令只确认L6几何检查入口，不执行工具、网格或求解；实际L6/Pilot工作仍需独立批准。
 
 ### 目标与验收标准
 
