@@ -100,9 +100,12 @@ def _sha256_file(path: Path) -> str:
 
 
 _PATH_DERIVED_HASH_KEYS = {
+    "baseline_binding_sha256",
     "binding_sha256",
+    "endpoint_sha256",
     "evidence_sha256",
     "normalized_config_sha256",
+    "schedule_endpoint_sha256",
     "strategy_config_sha256",
 }
 
@@ -128,6 +131,11 @@ def _portable_attestation(value: Any) -> Any:
 
 def _same_portable_attestation(left: Any, right: Any) -> bool:
     return _portable_attestation(left) == _portable_attestation(right)
+
+
+def _is_absolute_attested_path(value: object) -> bool:
+    raw = str(value)
+    return Path(raw).is_absolute() or re.match(r"^[A-Za-z]:[\\/]", raw) is not None
 
 
 def _strict_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -2232,7 +2240,7 @@ def _load_direction_audit_attestation(
         or any(not isinstance(item, str) or not item for item in argv)
         or run_evidence.get("worker_argv") != argv
         or argv[1:3] != ["-m", "cfdpipe.coarse_repair_audit_worker"]
-        or not Path(argv[0]).is_absolute()
+        or not _is_absolute_attested_path(argv[0])
         or worker.get("configured_process_memory_limit_bytes")
         != expected_worker_memory_limit_bytes
         or worker.get("hard_limit_installed_before_heavy_import") is not True
@@ -2244,7 +2252,7 @@ def _load_direction_audit_attestation(
         or not _same_portable_attestation(
             worker.get("output_directory"), str(path.parent)
         )
-        or not Path(str(worker.get("evidence_path", ""))).is_absolute()
+        or not _is_absolute_attested_path(worker.get("evidence_path", ""))
         or isolation.get("coarse_contract_sha256")
         != str(expected_coarse_contract_sha256).casefold()
         or run_evidence.get("coarse_contract_sha256")
@@ -2305,9 +2313,9 @@ def _load_direction_audit_attestation(
         ) from error
     if (
         not expected_projection_path
-        or not Path(expected_projection_path).is_absolute()
+        or not _is_absolute_attested_path(expected_projection_path)
         or not expected_schedule_path
-        or not Path(expected_schedule_path).is_absolute()
+        or not _is_absolute_attested_path(expected_schedule_path)
         or _SHA256.fullmatch(expected_schedule_sha) is None
         or _argv_option(argv, "--coarse-contract-sha256")
         != str(expected_coarse_contract_sha256).casefold()
