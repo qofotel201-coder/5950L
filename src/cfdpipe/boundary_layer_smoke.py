@@ -11675,8 +11675,17 @@ def _apply_one_layer_orientation_cone_subdivision(
         for entity in prism_volume_tags
         for record in _element_records_from_gmsh(gmsh, 3, int(entity))
     ]
+    initial_core_records = _all_volume_records_for_entities(
+        gmsh, [int(value) for value in core_volume_tags]
+    )
     if not initial_raw or any(record["type"] != "Prism 6" for record in initial_raw):
         raise BoundaryLayerSmokeError("generated boundary layer is not one-layer Prism6")
+    if not initial_core_records or any(
+        record["type"] == "Prism 6" for record in initial_core_records
+    ):
+        raise BoundaryLayerSmokeError(
+            "generated core inventory is empty or contains Prism6"
+        )
     source_prism_tags = [int(record["tag"]) for record in initial_raw]
     initial_quality, initial_bad = _strict_quality_summary(gmsh, source_prism_tags)
     if not audit_only and len(initial_bad) != int(
@@ -12007,6 +12016,54 @@ def _apply_one_layer_orientation_cone_subdivision(
                         raise BoundaryLayerSmokeError("Prism6 node has no source chain")
         gmsh.model.mesh.addElementsByType(
             entity, next(iter(type_ids)), new_tags, new_connectivity
+        )
+
+    current_core_records = _all_volume_records_for_entities(
+        gmsh, [int(value) for value in core_volume_tags]
+    )
+    current_core_tags = {int(record["tag"]) for record in current_core_records}
+    retained_core_records = {
+        int(record["tag"]): record for record in current_core_records
+    }
+    for record in initial_core_records:
+        tag = int(record["tag"])
+        if tag in retained_core_records and tuple(
+            int(value) for value in retained_core_records[tag]["nodes"]
+        ) != tuple(int(value) for value in record["nodes"]):
+            raise BoundaryLayerSmokeError(
+                "Prism6 subdivision changed retained core connectivity"
+            )
+    missing_core_records = [
+        record
+        for record in initial_core_records
+        if int(record["tag"]) not in current_core_tags
+    ]
+    missing_core_groups: dict[tuple[int, int], list[dict[str, Any]]] = (
+        defaultdict(list)
+    )
+    for record in missing_core_records:
+        missing_core_groups[
+            (int(record["entity"]), int(record["element_type"]))
+        ].append(record)
+    for (entity, element_type), records in sorted(missing_core_groups.items()):
+        new_tags = list(range(next_element_tag, next_element_tag + len(records)))
+        next_element_tag += len(records)
+        gmsh.model.mesh.addElementsByType(
+            entity,
+            element_type,
+            new_tags,
+            [
+                int(node)
+                for record in records
+                for node in record["nodes"]
+            ],
+        )
+    restored_core_records = _all_volume_records_for_entities(
+        gmsh, [int(value) for value in core_volume_tags]
+    )
+    if len(restored_core_records) != len(initial_core_records):
+        raise BoundaryLayerSmokeError(
+            "Prism6 subdivision did not preserve the core element inventory"
         )
 
     lateral_by_entity: dict[int, list[dict[str, Any]]] = defaultdict(list)
