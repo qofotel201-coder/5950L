@@ -292,8 +292,9 @@ class RANSSmokeTests(unittest.TestCase):
 
     def test_rans_renderer_is_first_order_no_slip_adiabatic(self) -> None:
         atmosphere = us_standard_atmosphere_1976(21_000.0)
+        reference = _reference()
         rendered, mapping = render_project_rans_smoke_config(
-            _reference(),
+            reference,
             {
                 "mach": 5.0,
                 "altitude_km": 21.0,
@@ -337,6 +338,10 @@ class RANSSmokeTests(unittest.TestCase):
         self.assertIn("MUSCL_TURB= NO", rendered)
         self.assertIn("VOLUME_OUTPUT= COORDINATES, SOLUTION, PRIMITIVE", rendered)
         self.assertNotIn("SKIN_FRICTION-X", rendered)
+        self.assertFalse(
+            {"SKIN_FRICTION-X", "SKIN_FRICTION-Y", "SKIN_FRICTION-Z"}
+            & set(reference.supported_tokens)
+        )
         self.assertNotIn("MARKER_EULER=", rendered)
         self.assertNotIn("MARKER_OUTLET=", rendered)
         self.assertNotIn("BACK_PRESSURE=", rendered)
