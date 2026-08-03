@@ -9357,19 +9357,7 @@ def _frontier_collar_graph(
 ) -> tuple[dict[str, Any], dict[int, int]]:
     """Build the wall-restricted stable source-triangle edge graph."""
 
-    stable_to_runtime: dict[str, int] = {}
-    for root, coordinates in root_coordinates.items():
-        root_id = _stable_root_id(coordinates)
-        if root_id in stable_to_runtime:
-            raise BoundaryLayerSmokeError(
-                "frontier collar stable root identity is ambiguous"
-            )
-        stable_to_runtime[root_id] = int(root)
     seed_ids = sorted(str(value) for value in seed_root_coordinate_sha256)
-    if len(seed_ids) != 3 or any(value not in stable_to_runtime for value in seed_ids):
-        raise BoundaryLayerSmokeError(
-            "frontier collar seed root identity is incomplete"
-        )
     normalized_wall = str(target_wall_surface_fingerprint).casefold()
     wall_triangles: set[tuple[int, int, int]] = set()
     for raw_triangle in source_triangles:
@@ -9389,6 +9377,18 @@ def _frontier_collar_graph(
     if any(root not in root_coordinates for root in graph_roots):
         raise BoundaryLayerSmokeError(
             "frontier collar graph root coordinate is missing"
+        )
+    stable_to_runtime: dict[str, int] = {}
+    for root in sorted(graph_roots):
+        root_id = _stable_root_id(root_coordinates[root])
+        if root_id in stable_to_runtime:
+            raise BoundaryLayerSmokeError(
+                "frontier collar stable wall-root identity is ambiguous"
+            )
+        stable_to_runtime[root_id] = int(root)
+    if len(seed_ids) != 3 or any(value not in stable_to_runtime for value in seed_ids):
+        raise BoundaryLayerSmokeError(
+            "frontier collar seed root identity is incomplete"
         )
     adjacency: dict[int, set[int]] = {root: set() for root in graph_roots}
     edge_runtime: set[tuple[int, int]] = set()
