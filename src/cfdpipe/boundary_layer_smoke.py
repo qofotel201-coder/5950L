@@ -14199,14 +14199,8 @@ class RealProjectBoundaryLayerStrategy:
             raise BoundaryLayerSmokeError("marker config has no fluid physical name")
         fluid_group = gmsh.model.addPhysicalGroup(3, all_fluid_volumes)
         gmsh.model.setPhysicalName(3, fluid_group, fluid_name)
-        production_volume_regions = None
-        if normalized_config.get("production_replay_after_audit") is True:
-            production_volume_regions = self._configure_production_volume_sizes(
-                gmsh, normalized_config
-            )
         gmsh.model.mesh.generate(3)
-        if production_volume_regions is not None:
-            gmsh.model.mesh.removeSizeCallback()
+        production_volume_regions = None
         if normalized_config.get("projection_only") is True:
             if normalized_config.get("contract_mode") != "coarse_projection_only":
                 raise BoundaryLayerSmokeError(
@@ -14310,10 +14304,26 @@ class RealProjectBoundaryLayerStrategy:
             # topology and is therefore replayed before production core
             # refinement.  Tet4 centroid splits add no face nodes, so the
             # repaired prism/core interface remains exactly conformal.
-            if production_volume_regions is None:
-                raise BoundaryLayerSmokeError(
-                    "production core sizes were not configured before HXT"
-                )
+            region_evidence = self._configure_production_volume_sizes(
+                gmsh, normalized_config
+            )
+            if region_evidence is None:
+                raise BoundaryLayerSmokeError("production core sizes are missing")
+            gmsh.model.mesh.clear([(3, core1_tag), (3, core2_tag)])
+            all_entities = gmsh.model.getEntities()
+            gmsh.model.setVisibility(all_entities, 0, recursive=False)
+            gmsh.model.setVisibility(
+                [(3, core1_tag), (3, core2_tag)], 1, recursive=True
+            )
+            gmsh.option.setNumber("Mesh.MeshOnlyVisible", 1)
+            gmsh.option.setNumber("Mesh.MeshOnlyEmpty", 1)
+            try:
+                gmsh.model.mesh.generate(3)
+            finally:
+                gmsh.model.mesh.removeSizeCallback()
+                gmsh.option.setNumber("Mesh.MeshOnlyVisible", 0)
+                gmsh.option.setNumber("Mesh.MeshOnlyEmpty", 0)
+                gmsh.model.setVisibility(all_entities, 1, recursive=False)
             core_count = sum(
                 len(_element_records_from_gmsh(gmsh, 3, int(tag)))
                 for tag in (core1_tag, core2_tag)
@@ -14330,7 +14340,7 @@ class RealProjectBoundaryLayerStrategy:
                 "final_core_tetra_count": core_count,
                 "prism_count": prism_count,
                 "final_total_3d_element_count": core_count + prism_count,
-                "volume_regions": production_volume_regions,
+                "volume_regions": region_evidence,
             }
             remeshed_records = _all_volume_records_for_entities(
                 gmsh,
