@@ -877,7 +877,9 @@ def make_coarse_repair_audit_strategy_config(
                 ),
                 expected_characteristic_length_m=float(characteristic_length_m),
                 expected_local_schedule_binding_sha256=str(
-                    local_schedule_binding.get("binding_sha256", "")
+                    direction_replay_approval.get(
+                        "local_schedule_binding_sha256", ""
+                    )
                 ),
                 expected_projection_manifest_sha256=str(
                     direction_replay_approval.get(

@@ -2413,6 +2413,12 @@ def _load_direction_audit_attestation(
             "ended_at_utc": str(manifest.get("ended_at_utc", "")),
         },
         "discovery": validated_discovery,
+        "schedule_feasibility_endpoint": copy.deepcopy(
+            strategy["schedule_feasibility_endpoint"]
+        ),
+        "direction_endpoint": copy.deepcopy(
+            strategy["owner_free_direction_endpoint"]
+        ),
     }
 
 
@@ -2551,6 +2557,15 @@ def load_direction_replay_consensus_approval(
         raise CoarseDirectionReplayError(
             "independent direction audits do not have identical consensus evidence"
         )
+    if (
+        attestations[0]["schedule_feasibility_endpoint"]
+        != attestations[1]["schedule_feasibility_endpoint"]
+        or attestations[0]["direction_endpoint"]
+        != attestations[1]["direction_endpoint"]
+    ):
+        raise CoarseDirectionReplayError(
+            "independent direction audit endpoints do not match"
+        )
     payload = payloads[0]
     discovery = attestations[0]["discovery"]
     search = discovery["search"]
@@ -2638,16 +2653,18 @@ def load_direction_replay_consensus_approval(
         "coarse_contract_sha256": str(expected_coarse_contract_sha256).casefold(),
         "characteristic_length_m": float(expected_characteristic_length_m),
         "local_schedule_binding_sha256": str(
-            expected_local_schedule_binding.get("binding_sha256", "")
+            attestations[0]["schedule_feasibility_endpoint"].get(
+                "baseline_binding_sha256", ""
+            )
         ).casefold(),
         "projection_manifest_sha256": str(
             expected_projection_evidence.get("sha256", "")
         ).casefold(),
         "schedule_feasibility_endpoint": copy.deepcopy(
-            expected_audit_strategy["schedule_feasibility_endpoint"]
+            attestations[0]["schedule_feasibility_endpoint"]
         ),
         "direction_endpoint": copy.deepcopy(
-            expected_audit_strategy["owner_free_direction_endpoint"]
+            attestations[0]["direction_endpoint"]
         ),
         "consensus": consensus,
         "source_minimum_growth_final_quality": copy.deepcopy(
@@ -2670,7 +2687,7 @@ def load_direction_replay_consensus_approval(
         expected_coarse_contract_sha256=expected_coarse_contract_sha256,
         expected_characteristic_length_m=expected_characteristic_length_m,
         expected_local_schedule_binding_sha256=str(
-            expected_local_schedule_binding.get("binding_sha256", "")
+            approval["local_schedule_binding_sha256"]
         ),
         expected_projection_manifest_sha256=str(
             expected_projection_evidence.get("sha256", "")
