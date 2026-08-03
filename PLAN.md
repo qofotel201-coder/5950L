@@ -2,7 +2,26 @@
 
 ## 本轮任务：AutoDL L6 十五层边界层小网格与诊断 RANS 验收
 
-状态：进行中。仅从已验证的只读 STEP 与共享拓扑 BREP 重建真实模型小规模 15 层混合网格，并在严格网格门通过后依次执行一阶 SST 诊断和显式 restart 二阶 SST 诊断；不运行生产网格或生产 RANS，不启用 CUDA，不修改冻结合同。
+状态：已完成；AutoDL L6 十五层真实模型小网格、一阶 SST 诊断、显式 restart 二阶 SST 诊断及 pvbatch 严格门均为 PASS。结果仅为诊断，不具备生产资格、不声明收敛；未启动 Pilot 或生产网格，未启用 CUDA，未修改冻结物理、marker、工况、参考量、输入哈希或质量阈值。
+
+### 最终状态
+
+- `PRIVATE_INPUTS = TRANSFERRED_VERIFIED`
+- `REAL_PROJECT_L5 = PASS`
+- `REMOTE_AUTODL_L6 = PASS`
+- `PILOT_MESH_REPAIR = READY`
+- `RANS = DIAGNOSTIC_L6_PASS`
+- `PRODUCTION_CFD = HOLD`
+
+### 实施与验证结果
+
+- AutoDL 重新验证只读 STEP/BREP 冻结 SHA-256，以共享拓扑 BREP 重建新 L6 网格；两个流体体、两个共享 patch、四个求解 marker 与 `turning_section_outlet` 测量面均通过本轮 manifest/诊断交叉检查。
+- 最终网格为 49,345 点、117,564 个三维单元（81,300 Prism6、36,264 Tet4），48 个真实壁面全部使用统一冻结物理日程且每柱 15 层。fresh readback 的最小 Scaled Jacobian 为 `0.0119748982911`，非正体积、非正 Jacobian、非有限质量、marker/interface 错误均为 0，SU2 文本读取 PASS。
+- 一阶 SST 以单进程、CUDA关闭、CFL 0.05 完成 500 步并返回0；restart 完整且 pvbatch PASS。二阶仅消费该一阶显式 `run_manifest.json`/restart SHA，完成200步并返回0；没有 fatal、NaN 或非物理解门失败。
+- 二阶 pvbatch 诊断的最大 y+=`0.689589619637`、P95=`0.482633395493`、P99=`0.541528907418`、y+>1面积比例为0；全局相对质量不平衡为`6.89127807950e-05`。两个后出口回流面积比例均为0，最小面心法向Mach分别为`2.45642322095`与`4.51570152682`；这些数值只用于 L6 软件/诊断质量门，不作生产物理解读或边界冻结。
+- 两次普通兼容缺陷均按最小范围闭环：恢复完整 smoke 的统一15层schedule消费路径；让RANS在保留历史实例哈希门的同时接受由同一冻结配置/STEP/BREP逐哈希绑定的新重建manifest。AutoDL SU2的表面字段名则延迟到实际pvbatch数组严格验证，不把未使用输出名误当配置语法。
+- 最终 L6 汇总18/18检查PASS；远程证据包回传至 `remote_evidence/autodl_l6_final_20260803T143342Z/`，本机复算SHA-256为`38aa27297ea23cbaa7278ef8f3c031dc83033bfa29a9c780bff35a199bd6239b`并重新解析overall PASS。
+- Pilot 修复计划已定位冻结阈值`0.01`下的12个外层低质Prism及root-schedule collar v5策略，列出五个最小历史JSON和精确审计命令；本轮未传输这些Pilot历史证据，也未启动Pilot。
 
 ### 目标与验收标准
 

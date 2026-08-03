@@ -1,0 +1,84 @@
+{
+  "schema": "cfdpipe.autodl_pilot_repair_execution_plan.v1",
+  "status": "READY_NOT_EXECUTED",
+  "diagnostic_basis": {
+    "l6_run_id": "autodl_l6_final_20260803T143342Z",
+    "l6_evidence_sha256": "38aa27297ea23cbaa7278ef8f3c031dc83033bfa29a9c780bff35a199bd6239b",
+    "l6_status": "PASS"
+  },
+  "scope": {
+    "audit_only": true,
+    "production_mesh_eligible": false,
+    "write_mesh": false,
+    "run_su2": false,
+    "run_paraview": false,
+    "gpu_enabled": false
+  },
+  "blocker": {
+    "quality_threshold": 0.01,
+    "quality_metric": "Prism6 Scaled Jacobian",
+    "current_minimum": 0.003730823,
+    "below_threshold_prism_count": 12,
+    "nonpositive_count": 0,
+    "nonfinite_count": 0,
+    "core_minimum_gamma": 0.001112365,
+    "core_below_threshold_count": 0,
+    "failed_source_triangle_sha256_prefix": "9aaa2aed",
+    "failed_layers": "49-60",
+    "wall_surface_fingerprint": "8c1b026c845db34e1ec693d4ffbd814f342e478343025f33c13b58f40db52864",
+    "cause": "three-root outer-tail schedule mismatch at a two-wall junction; direction search is exhausted",
+    "repair_strategy": "root-schedule collar v5 with bounded spatial taper, absolute-state replay and full-mesh A-B-A-B validation"
+  },
+  "frozen_gates": {
+    "minimum_prism_scaled_jacobian": 0.01,
+    "minimum_core_tetra_gamma": 0.001,
+    "maximum_nonpositive_volume_count": 0,
+    "maximum_nonpositive_jacobian_count": 0,
+    "maximum_nonfinite_count": 0,
+    "minimum_layer_count": 15,
+    "coarse_worker_memory_limit_bytes": 3221225472,
+    "os_physical_memory_reserve_bytes": 4294967296,
+    "worker_monitor_margin_bytes": 536870912
+  },
+  "minimum_historical_inputs": [
+    {
+      "path": "runs/mesh/coarse/projection_040_rearcap0225_cal032_20260802_001/projection_manifest.json",
+      "size_bytes": 92258,
+      "sha256": "9fdad48e0c60178b39bf56cfd717490d137d47b1a80a7465f713056ebc343b6d",
+      "purpose": "hash-bound 0.40 m projection"
+    },
+    {
+      "path": "runs/mesh/coarse/local_schedule_20260802_004/boundary_layer_local_schedule.json",
+      "size_bytes": 67834,
+      "sha256": "23a66ddfb78ae9dc28daa7f51d61cdafbe8e447948a72b15faf64f5c682941d1",
+      "purpose": "48-wall physical local schedule binding"
+    },
+    {
+      "path": "runs/mesh/coarse/direction_pattern_040_min_growth_20260802_001/coarse_repair_audit_manifest.json",
+      "size_bytes": 656551,
+      "sha256": "7ae92aba9f6a7ec0a325412a9d2eb1f8e978329bcf4ffa1c7be500b82c06b2bc",
+      "purpose": "first independent direction audit"
+    },
+    {
+      "path": "runs/mesh/coarse/direction_pattern_040_min_growth_20260802_002/coarse_repair_audit_manifest.json",
+      "size_bytes": 656528,
+      "sha256": "cc66b618b083309ac5fd447e836f9baea69858d328bee9381e04d0824eacb314",
+      "purpose": "independent direction confirmation"
+    },
+    {
+      "path": "runs/mesh/coarse/schedule_homotopy_040_20260802_002/coarse_repair_audit_manifest.json",
+      "size_bytes": 3594997,
+      "sha256": "85ae060051eb802295262e9c1d6451f1b517d4c55a2b1059c443677b1bb62412",
+      "purpose": "fixed-direction physical schedule homotopy frontier"
+    }
+  ],
+  "reference_failure_evidence": {
+    "path": "runs/mesh/coarse/schedule_frontier_direction_040_20260802_007/coarse_repair_audit_manifest.json",
+    "size_bytes": 7310493,
+    "sha256": "7abcf8808e85ef7383d7da2630f2f514417d276a90e83cdae31ff13ecb5a5ee2",
+    "status": "INCOMPLETE",
+    "downstream_consumable": false
+  },
+  "resource_precondition": "Use a fresh output directory and at least 8.8 GiB available physical memory before starting; retain the existing runtime memory guard.",
+  "unique_execution_entry": "cd /root/autodl-tmp/5950L && CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python bash scripts/cfdpipe.sh pipeline coarse-repair-audit --config config/coarse_mesh.toml --characteristic-length 0.40 --projection-manifest runs/mesh/coarse/projection_040_rearcap0225_cal032_20260802_001/projection_manifest.json --projection-sha256 9fdad48e0c60178b39bf56cfd717490d137d47b1a80a7465f713056ebc343b6d --local-schedule runs/mesh/coarse/local_schedule_20260802_004/boundary_layer_local_schedule.json --local-schedule-sha256 23a66ddfb78ae9dc28daa7f51d61cdafbe8e447948a72b15faf64f5c682941d1 --schedule-feasibility-endpoint physical-schedule-first-frontier-direction-audit --direction-audit-primary runs/mesh/coarse/direction_pattern_040_min_growth_20260802_001/coarse_repair_audit_manifest.json --direction-audit-primary-sha256 7ae92aba9f6a7ec0a325412a9d2eb1f8e978329bcf4ffa1c7be500b82c06b2bc --direction-audit-confirmation runs/mesh/coarse/direction_pattern_040_min_growth_20260802_002/coarse_repair_audit_manifest.json --direction-audit-confirmation-sha256 cc66b618b083309ac5fd447e836f9baea69858d328bee9381e04d0824eacb314 --homotopy-audit-manifest runs/mesh/coarse/schedule_homotopy_040_20260802_002/coarse_repair_audit_manifest.json --homotopy-audit-manifest-sha256 85ae060051eb802295262e9c1d6451f1b517d4c55a2b1059c443677b1bb62412 --output runs/mesh/coarse/autodl_pilot_repair_<UTC> --timeout 840 --quiet"
+}
