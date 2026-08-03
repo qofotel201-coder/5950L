@@ -2630,6 +2630,9 @@ def _validate_coarse_repair_audit_pass_manifest(
                 )
         if direction_continuation:
             evidence = expected_homotopy_audit_evidence
+            homotopy_source_bindings = evidence.get("discovery", {}).get(
+                "source_bindings", {}
+            )
             endpoint_arguments = {
                 "homotopy_manifest_sha256": evidence.get("sha256"),
                 "homotopy_discovery": evidence.get("discovery"),
@@ -2639,10 +2642,14 @@ def _validate_coarse_repair_audit_pass_manifest(
                     )
                 ),
                 "direction_replay_approval_sha256": (
-                    expected_direction_replay_approval.get("approval_sha256")
+                    homotopy_source_bindings.get(
+                        "direction_replay_approval_sha256"
+                    )
                 ),
                 "local_schedule_binding_sha256": (
-                    replay_binding_sha256
+                    homotopy_source_bindings.get(
+                        "local_schedule_binding_sha256"
+                    )
                 ),
                 "minimum_prism_scaled_jacobian_for_pass": float(
                     quality["minimum_prism_scaled_jacobian"]
