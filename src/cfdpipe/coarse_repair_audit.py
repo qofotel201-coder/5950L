@@ -1337,21 +1337,33 @@ def _validate_repair_audit_strategy_config(
                     raise CoarseRepairAuditError(
                         "schedule direction continuation lineage is incomplete"
                     )
+                source_bindings = evidence.get("discovery", {}).get(
+                    "source_bindings", {}
+                )
                 endpoint_arguments = {
                     "homotopy_manifest_sha256": str(
                         evidence.get("sha256", "")
                     ).casefold(),
                     "homotopy_discovery": evidence.get("discovery"),
                     "homotopy_endpoint_sha256": str(
-                        raw_homotopy.get("endpoint_sha256", "")
+                        source_bindings.get(
+                            "homotopy_endpoint_sha256",
+                            raw_homotopy.get("endpoint_sha256", ""),
+                        )
                     ),
                     "direction_replay_approval_sha256": str(
-                        expected_direction_replay_approval.get(
-                            "approval_sha256", ""
+                        source_bindings.get(
+                            "direction_replay_approval_sha256",
+                            expected_direction_replay_approval.get(
+                                "approval_sha256", ""
+                            ),
                         )
                     ),
                     "local_schedule_binding_sha256": str(
-                        validated_binding.get("binding_sha256", "")
+                        source_bindings.get(
+                            "local_schedule_binding_sha256",
+                            validated_binding.get("binding_sha256", ""),
+                        )
                     ),
                     "minimum_prism_scaled_jacobian_for_pass": float(
                         quality["minimum_prism_scaled_jacobian"]
