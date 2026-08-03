@@ -2291,7 +2291,7 @@ def _coarse_repair_memory_base(
         record.get("schema") != schema
         or record.get("status") != "PASS"
         or record.get("supported") is not True
-        or record.get("platform") != "win32"
+        or record.get("platform") not in {"win32", "linux"}
         or record.get("operation") != operation
         or record.get("error") is not None
         or isinstance(process_id, bool)
