@@ -11675,9 +11675,18 @@ def _apply_one_layer_orientation_cone_subdivision(
         for entity in prism_volume_tags
         for record in _element_records_from_gmsh(gmsh, 3, int(entity))
     ]
-    initial_core_records = _all_volume_records_for_entities(
-        gmsh, [int(value) for value in core_volume_tags]
-    )
+    initial_core_records = [
+        record
+        for record in _all_volume_records_for_entities(
+            gmsh,
+            [
+                int(tag)
+                for dimension, tag in gmsh.model.getEntities(3)
+                if int(dimension) == 3
+            ],
+        )
+        if record["type"] != "Prism 6"
+    ]
     if not initial_raw or any(record["type"] != "Prism 6" for record in initial_raw):
         raise BoundaryLayerSmokeError("generated boundary layer is not one-layer Prism6")
     if not initial_core_records or any(
@@ -12018,9 +12027,18 @@ def _apply_one_layer_orientation_cone_subdivision(
             entity, next(iter(type_ids)), new_tags, new_connectivity
         )
 
-    current_core_records = _all_volume_records_for_entities(
-        gmsh, [int(value) for value in core_volume_tags]
-    )
+    current_core_records = [
+        record
+        for record in _all_volume_records_for_entities(
+            gmsh,
+            [
+                int(tag)
+                for dimension, tag in gmsh.model.getEntities(3)
+                if int(dimension) == 3
+            ],
+        )
+        if record["type"] != "Prism 6"
+    ]
     current_core_tags = {int(record["tag"]) for record in current_core_records}
     retained_core_records = {
         int(record["tag"]): record for record in current_core_records
@@ -12058,9 +12076,18 @@ def _apply_one_layer_orientation_cone_subdivision(
                 for node in record["nodes"]
             ],
         )
-    restored_core_records = _all_volume_records_for_entities(
-        gmsh, [int(value) for value in core_volume_tags]
-    )
+    restored_core_records = [
+        record
+        for record in _all_volume_records_for_entities(
+            gmsh,
+            [
+                int(tag)
+                for dimension, tag in gmsh.model.getEntities(3)
+                if int(dimension) == 3
+            ],
+        )
+        if record["type"] != "Prism 6"
+    ]
     if len(restored_core_records) != len(initial_core_records):
         raise BoundaryLayerSmokeError(
             "Prism6 subdivision did not preserve the core element inventory"
