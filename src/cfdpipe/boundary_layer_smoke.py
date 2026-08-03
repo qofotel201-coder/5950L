@@ -13588,6 +13588,9 @@ class RealProjectBoundaryLayerStrategy:
                     [node for face in faces for node in face],
                 )
             volume_map: dict[int, int] = {}
+            gmsh.model.mesh.createTopology(
+                makeSimplyConnected=False, exportDiscrete=True
+            )
             gmsh.model.mesh.createGeometry(
                 [(2, surface) for surface in sorted(surface_map.values())]
             )
