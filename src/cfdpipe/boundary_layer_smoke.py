@@ -11,6 +11,7 @@ unqualified fallback can never be selected silently.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+import copy
 from datetime import datetime, timezone
 import hashlib
 import heapq
