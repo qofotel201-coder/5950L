@@ -2890,6 +2890,7 @@ class SU2Bridge:
             "requested_iterations": max_iterations,
             "iterations": 0,
             "history_path": None,
+            "history_sha256": None,
             "visualization_file": None,
             "visualization_validation": None,
             "solver_stdout_log": None,
@@ -2984,6 +2985,7 @@ class SU2Bridge:
             history_path = history_candidates[0]
             iterations = parse_history_iterations(history_path)
             manifest["history_path"] = str(history_path)
+            manifest["history_sha256"] = _sha256(history_path)
             manifest["iterations"] = iterations
             if iterations < max_iterations:
                 raise SU2BridgeError(

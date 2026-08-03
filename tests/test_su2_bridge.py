@@ -1355,6 +1355,7 @@ class SU2BridgeTests(unittest.TestCase):
         self.assertEqual(manifest["return_code"], 0)
         self.assertEqual(manifest["iterations"], 5)
         self.assertEqual(manifest["history_path"], str(history.resolve()))
+        self.assertEqual(manifest["history_sha256"], self._sha256(history))
         self.assertEqual(
             manifest["visualization_file"], str(visualization.resolve())
         )
