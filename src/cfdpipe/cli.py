@@ -4196,7 +4196,7 @@ def _handle_pipeline_coarse_repair_audit(args: argparse.Namespace) -> int:
                     str(args.direction_audit_confirmation_sha256).casefold(),
                     expected_audit_strategy=expected_audit_strategy,
                     expected_coarse_contract_sha256=str(
-                        contract["normalized_config_sha256"]
+                        projection_evidence["coarse_contract_sha256"]
                     ),
                     expected_characteristic_length_m=characteristic,
                     expected_local_schedule_binding=local_schedule_binding,

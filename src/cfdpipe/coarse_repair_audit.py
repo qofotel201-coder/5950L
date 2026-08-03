@@ -822,6 +822,9 @@ def make_coarse_repair_audit_strategy_config(
     result.pop("normalized_config_sha256", None)
     result.update(
         {
+            "coarse_contract_sha256": str(
+                local_schedule_binding.get("coarse_contract_sha256", "")
+            ),
             "smoke_only": False,
             "calibration_only": False,
             "repair_audit_only": True,
@@ -870,7 +873,7 @@ def make_coarse_repair_audit_strategy_config(
             validated_replay = validate_direction_replay_approval(
                 direction_replay_approval,
                 expected_coarse_contract_sha256=str(
-                    contract.get("normalized_config_sha256", "")
+                    local_schedule_binding.get("coarse_contract_sha256", "")
                 ),
                 expected_characteristic_length_m=float(characteristic_length_m),
                 expected_local_schedule_binding_sha256=str(
