@@ -14313,7 +14313,12 @@ class RealProjectBoundaryLayerStrategy:
             all_entities = gmsh.model.getEntities()
             gmsh.model.setVisibility(all_entities, 0, recursive=False)
             gmsh.model.setVisibility(
-                [(3, core1_tag), (3, core2_tag)], 1, recursive=True
+                [(3, core1_tag), (3, core2_tag)], 1, recursive=False
+            )
+            gmsh.model.setVisibility(
+                [(3, int(tag)) for tag in prism_by_wall.values()],
+                0,
+                recursive=False,
             )
             gmsh.option.setNumber("Mesh.MeshOnlyVisible", 1)
             gmsh.option.setNumber("Mesh.MeshOnlyEmpty", 1)
