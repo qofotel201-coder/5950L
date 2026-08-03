@@ -11677,14 +11677,7 @@ def _apply_one_layer_orientation_cone_subdivision(
     ]
     initial_core_records = [
         record
-        for record in _all_volume_records_for_entities(
-            gmsh,
-            [
-                int(tag)
-                for dimension, tag in gmsh.model.getEntities(3)
-                if int(dimension) == 3
-            ],
-        )
+        for record in _element_records_from_gmsh(gmsh, 3, -1)
         if record["type"] != "Prism 6"
     ]
     if not initial_raw or any(record["type"] != "Prism 6" for record in initial_raw):
@@ -12029,14 +12022,7 @@ def _apply_one_layer_orientation_cone_subdivision(
 
     current_core_records = [
         record
-        for record in _all_volume_records_for_entities(
-            gmsh,
-            [
-                int(tag)
-                for dimension, tag in gmsh.model.getEntities(3)
-                if int(dimension) == 3
-            ],
-        )
+        for record in _element_records_from_gmsh(gmsh, 3, -1)
         if record["type"] != "Prism 6"
     ]
     current_core_tags = {int(record["tag"]) for record in current_core_records}
@@ -12078,14 +12064,7 @@ def _apply_one_layer_orientation_cone_subdivision(
         )
     restored_core_records = [
         record
-        for record in _all_volume_records_for_entities(
-            gmsh,
-            [
-                int(tag)
-                for dimension, tag in gmsh.model.getEntities(3)
-                if int(dimension) == 3
-            ],
-        )
+        for record in _element_records_from_gmsh(gmsh, 3, -1)
         if record["type"] != "Prism 6"
     ]
     if len(restored_core_records) != len(initial_core_records):
@@ -12278,14 +12257,7 @@ def _apply_one_layer_orientation_cone_subdivision(
                     "physical-schedule first-frontier continuation is audit-only "
                     "and exclusive"
                 )
-            all_volume_records = _all_volume_records_for_entities(
-                gmsh,
-                [
-                    int(tag)
-                    for dimension, tag in gmsh.model.getEntities(3)
-                    if int(dimension) == 3
-                ],
-            )
+            all_volume_records = _element_records_from_gmsh(gmsh, 3, -1)
             core_volume_records = [
                 record
                 for record in all_volume_records
