@@ -12197,8 +12197,9 @@ def _apply_one_layer_orientation_cone_subdivision(
             all_volume_records = _all_volume_records_for_entities(
                 gmsh,
                 [
-                    *[int(value) for value in core_volume_tags],
-                    *sorted(int(value) for value in normalized_prism_fingerprints),
+                    int(tag)
+                    for dimension, tag in gmsh.model.getEntities(3)
+                    if int(dimension) == 3
                 ],
             )
             core_volume_records = [
