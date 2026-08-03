@@ -1,6 +1,7 @@
 {
   "schema": "cfdpipe.autodl_pilot_repair_execution_plan.v1",
   "status": "READY_NOT_EXECUTED",
+  "target_stage": "PILOT_AUDIT_ONLY_LOCAL_PRISM_REPAIR",
   "diagnostic_basis": {
     "l6_run_id": "autodl_l6_final_20260803T143342Z",
     "l6_evidence_sha256": "38aa27297ea23cbaa7278ef8f3c031dc83033bfa29a9c780bff35a199bd6239b",
@@ -78,6 +79,26 @@
     "sha256": "7abcf8808e85ef7383d7da2630f2f514417d276a90e83cdae31ff13ecb5a5ee2",
     "status": "INCOMPLETE",
     "downstream_consumable": false
+  },
+  "execution_contract": {
+    "input_manifest": "runs/mesh/coarse/schedule_frontier_direction_040_20260802_007/coarse_repair_audit_manifest.json",
+    "maximum_quality_evaluations": 4096,
+    "quality_evaluation_budget_upper_bound": 3730,
+    "direction_candidate_sources": [
+      "component_chebyshev",
+      "component_mean_bad_triangle_normal",
+      "component_mean_original_direction",
+      "incident_chebyshev",
+      "incident_mean_normal",
+      "local_bad_triangle_normal",
+      "neighbour_mean_original_direction",
+      "source_triangle_edge_pair_pattern",
+      "tangent_pattern"
+    ],
+    "collar_ring_width_candidates": [1, 2, 4, 8, 16, 32, 64],
+    "output_directory_template": "runs/mesh/coarse/autodl_pilot_repair_<UTC>",
+    "output_directory_rule": "Replace the single <UTC> placeholder with one basic-format UTC timestamp; the resulting repository-relative directory must not already exist.",
+    "unique_entry_mutation_policy": "Only the single <UTC> placeholder may be expanded; every other character and argument is immutable."
   },
   "resource_precondition": "Use a fresh output directory and at least 8.8 GiB available physical memory before starting; retain the existing runtime memory guard.",
   "unique_execution_entry": "cd /root/autodl-tmp/5950L && CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python bash scripts/cfdpipe.sh pipeline coarse-repair-audit --config config/coarse_mesh.toml --characteristic-length 0.40 --projection-manifest runs/mesh/coarse/projection_040_rearcap0225_cal032_20260802_001/projection_manifest.json --projection-sha256 9fdad48e0c60178b39bf56cfd717490d137d47b1a80a7465f713056ebc343b6d --local-schedule runs/mesh/coarse/local_schedule_20260802_004/boundary_layer_local_schedule.json --local-schedule-sha256 23a66ddfb78ae9dc28daa7f51d61cdafbe8e447948a72b15faf64f5c682941d1 --schedule-feasibility-endpoint physical-schedule-first-frontier-direction-audit --direction-audit-primary runs/mesh/coarse/direction_pattern_040_min_growth_20260802_001/coarse_repair_audit_manifest.json --direction-audit-primary-sha256 7ae92aba9f6a7ec0a325412a9d2eb1f8e978329bcf4ffa1c7be500b82c06b2bc --direction-audit-confirmation runs/mesh/coarse/direction_pattern_040_min_growth_20260802_002/coarse_repair_audit_manifest.json --direction-audit-confirmation-sha256 cc66b618b083309ac5fd447e836f9baea69858d328bee9381e04d0824eacb314 --homotopy-audit-manifest runs/mesh/coarse/schedule_homotopy_040_20260802_002/coarse_repair_audit_manifest.json --homotopy-audit-manifest-sha256 85ae060051eb802295262e9c1d6451f1b517d4c55a2b1059c443677b1bb62412 --output runs/mesh/coarse/autodl_pilot_repair_<UTC> --timeout 840 --quiet"

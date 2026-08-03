@@ -1,5 +1,17 @@
 # PLAN
 
+## 本轮任务：AutoDL Pilot audit-only 局部棱柱质量修复审计
+
+状态：进行中。严格消费 `reports/autodl_pilot_repair_execution_plan.json` 的 `unique_execution_entry`；只将 `<UTC>` 展开为唯一运行标识，不增删或改写其它参数。在 AutoDL 运行 root-schedule collar v5 的 AUDIT_ONLY 审计，判断是否允许进入生产粗网格构建，但本轮不写生产网格、不调用 SU2/pvbatch/RANS、不启用 CUDA。
+
+### 目标与验收标准
+
+- 本机、GitHub 与 AutoDL 固定到同一提交且远端跟踪工作区干净；五个计划内历史 JSON 在两端均为普通非链接文件，大小、SHA-256 与 provenance 引用逐项一致，只传这些最小文件而不传整个 `runs`。
+- JSON 是机器真源；补齐但不改变执行参数的审计元数据，并修正 Markdown 中与 JSON 不一致的 wall 指纹缩写。CLI `--help` 必须证明所有参数存在，controller 的内建 preflight 必须在 Gmsh 前验证 AUDIT_ONLY、零写网格/求解/后处理、资源和哈希门。
+- 运行目录必须是全新的 `runs/mesh/coarse/autodl_pilot_repair_<UTC>`；命令除模板中的 `<UTC>` 唯一展开外逐字来自 `unique_execution_entry`，最大质量评估4096次，实际预算上界3730次，候选来源和ring width只能来自计划枚举。
+- 仅当返回码0、最终阈下Prism为0、最小Scaled Jacobian不低于0.01、core/非正/非有限/marker/interface/源文件全部严格通过且SU2/pvbatch/CUDA零调用时标记Pilot审计PASS；否则保存精确阻塞证据并保持生产粗网格未获授权。
+- 生成远端JSON/Markdown汇总、完整命令/时间/资源/候选/失败单元证据，打包回传并本机验SHA；PASS后只规划约250万/500万/1000万同族生产网格，不在本轮生成。
+
 ## 本轮任务：AutoDL L6 十五层边界层小网格与诊断 RANS 验收
 
 状态：已完成；AutoDL L6 十五层真实模型小网格、一阶 SST 诊断、显式 restart 二阶 SST 诊断及 pvbatch 严格门均为 PASS。结果仅为诊断，不具备生产资格、不声明收敛；未启动 Pilot 或生产网格，未启用 CUDA，未修改冻结物理、marker、工况、参考量、输入哈希或质量阈值。
