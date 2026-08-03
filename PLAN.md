@@ -2,7 +2,7 @@
 
 ## 本轮任务：合并首次公开发布 PR
 
-状态：进行中；用户已明确确认合并公开仓库 `qofotel201-coder/5950L` 的 PR #1。当前 PR 为 `MERGEABLE/CLEAN`，Python 3.12/3.13 checks 均成功且无审查线程。
+状态：已完成；用户明确确认后，公开仓库 `qofotel201-coder/5950L` 的 PR #1 已由 draft 转为 ready，并以普通 merge commit 合并到默认分支 `main`。远端与本地 `main` 均已同步。
 
 ### 本轮目标与验收标准
 
@@ -10,6 +10,13 @@
 - 只合并 PR #1，不 force-push、不覆盖远端历史、不上传被 `.gitignore` 隔离的 CAD、BREP、运行结果、本机工具路径或虚拟环境。
 - 将草稿 PR 明确转为 ready 后采用普通 merge commit 合并；合并后从 GitHub 读取 PR 状态、merge commit SHA 与远端 `main` SHA，要求完全一致。
 - 同步本地 `main`，把实际合并结果写回本节并运行短预检；本轮不调用 Gmsh、SU2、ParaView、MPI/GPU，不生成网格或运行 CFD。
+
+### 实施与验证结果
+
+- 最终PR head固定为 `744d2c12cfa111da30ce3ed7650b42cfdfa9e2ca`；合并前状态为 `MERGEABLE/CLEAN`，审查线程0个，GitHub Actions run `30782892052` 的Windows/Python3.12与3.13任务均success。
+- GitHub App因integration权限对ready操作返回403后，按已验证发布回退使用管理员账户的GitHub CLI；CLI在合并时使用`--match-head-commit`绑定上述head SHA，未使用`--admin`、force或删除分支。
+- PR #1于 `2026-08-03T03:54:36Z` 报告`MERGED`；merge commit为 `bf12693e0943a7d578243b1686995bad43e5823b`，GitHub远端`main`、本地`origin/main`与同步后的本地`main`三者一致。
+- 合并没有新增工程代码、外部软件调用或CFD工件；私有CAD/BREP、运行结果、本机工具路径和虚拟环境继续由既有忽略与仓库预检合同隔离。
 
 ## 本轮任务：首次公开 GitHub 发布
 
