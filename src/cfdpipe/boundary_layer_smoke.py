@@ -14309,26 +14309,59 @@ class RealProjectBoundaryLayerStrategy:
             )
             if region_evidence is None:
                 raise BoundaryLayerSmokeError("production core sizes are missing")
-            gmsh.model.mesh.clear([(3, core1_tag), (3, core2_tag)])
-            all_entities = gmsh.model.getEntities()
-            gmsh.model.setVisibility(all_entities, 0, recursive=False)
-            gmsh.model.setVisibility(
-                [(3, core1_tag), (3, core2_tag)], 1, recursive=False
-            )
-            gmsh.model.setVisibility(
+            all_coordinates = _nodes_from_gmsh(gmsh)
+            prism_snapshots: dict[int, dict[str, Any]] = {}
+            for raw_tag in prism_by_wall.values():
+                tag = int(raw_tag)
+                records = _element_records_from_gmsh(gmsh, 3, tag)
+                if not records or any(record["type"] != "Prism 6" for record in records):
+                    raise BoundaryLayerSmokeError("production prism snapshot is incomplete")
+                node_tags, _node_coordinates, _ = gmsh.model.mesh.getNodes(3, tag)
+                classified = [int(value) for value in node_tags]
+                prism_snapshots[tag] = {
+                    "nodes": classified,
+                    "records": records,
+                }
+            maximum_node_tag = int(gmsh.model.mesh.getMaxNodeTag())
+            maximum_element_tag = int(gmsh.model.mesh.getMaxElementTag())
+            gmsh.model.removePhysicalGroups([(3, int(fluid_group))])
+            gmsh.model.geo.remove(
                 [(3, int(tag)) for tag in prism_by_wall.values()],
-                0,
                 recursive=False,
             )
-            gmsh.option.setNumber("Mesh.MeshOnlyVisible", 1)
+            gmsh.model.geo.synchronize()
+            gmsh.model.mesh.clear([(3, core1_tag), (3, core2_tag)])
             gmsh.option.setNumber("Mesh.MeshOnlyEmpty", 1)
+            gmsh.option.setNumber("Mesh.FirstNodeTag", maximum_node_tag + 1)
+            gmsh.option.setNumber("Mesh.FirstElementTag", maximum_element_tag + 1)
             try:
                 gmsh.model.mesh.generate(3)
             finally:
                 gmsh.model.mesh.removeSizeCallback()
-                gmsh.option.setNumber("Mesh.MeshOnlyVisible", 0)
                 gmsh.option.setNumber("Mesh.MeshOnlyEmpty", 0)
-                gmsh.model.setVisibility(all_entities, 1, recursive=False)
+            prism_type = int(gmsh.model.mesh.getElementType("prism", 1))
+            for tag in sorted(prism_snapshots):
+                gmsh.model.addDiscreteEntity(3, tag=tag)
+                snapshot = prism_snapshots[tag]
+                nodes = snapshot["nodes"]
+                if nodes:
+                    gmsh.model.mesh.addNodes(
+                        3,
+                        tag,
+                        nodes,
+                        [value for node in nodes for value in all_coordinates[node]],
+                    )
+                records = snapshot["records"]
+                gmsh.model.mesh.addElementsByType(
+                    tag,
+                    prism_type,
+                    [int(record["tag"]) for record in records],
+                    [int(node) for record in records for node in record["nodes"]],
+                )
+            fluid_group = gmsh.model.addPhysicalGroup(
+                3, [core1_tag, core2_tag, *[int(tag) for tag in prism_by_wall.values()]]
+            )
+            gmsh.model.setPhysicalName(3, fluid_group, fluid_name)
             core_count = sum(
                 len(_element_records_from_gmsh(gmsh, 3, int(tag)))
                 for tag in (core1_tag, core2_tag)
