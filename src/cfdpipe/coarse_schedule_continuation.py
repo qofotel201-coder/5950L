@@ -4538,6 +4538,7 @@ def validate_schedule_frontier_direction_continuation(
     expected_projected_3d_elements: int,
     expected_prism_element_count: int,
     expected_core_element_count: int,
+    expected_historical_core_element_count: int | None = None,
 ) -> dict[str, Any]:
     """Strict compatibility validator for continuation discovery evidence."""
 
@@ -4550,6 +4551,14 @@ def validate_schedule_frontier_direction_continuation(
     )
     core_count = _positive_int(
         expected_core_element_count, "expected core element count"
+    )
+    historical_core_count = _positive_int(
+        (
+            expected_core_element_count
+            if expected_historical_core_element_count is None
+            else expected_historical_core_element_count
+        ),
+        "expected historical core element count",
     )
     if prism_count + core_count != projected_count:
         raise CoarseScheduleContinuationError(
@@ -4661,15 +4670,25 @@ def validate_schedule_frontier_direction_continuation(
         aggregate_unsigned.pop("aggregate_sha256", ""),
         "continuation target aggregate SHA-256",
     )
+    def historical_inventory_normalized_quality_sha256(
+        quality: Mapping[str, Any],
+    ) -> str:
+        unsigned_quality = dict(quality)
+        unsigned_quality.pop("quality_sha256", None)
+        unsigned_quality["core_element_count"] = historical_core_count
+        unsigned_quality["core_tetra_count"] = historical_core_count
+        return _canonical_sha256(unsigned_quality)
+
     observation = endpoint["target_observation"]
     if (
         previous_state.get("fraction_float_hex")
         != endpoint["previous_fraction_float_hex"]
         or target_state.get("fraction_float_hex")
         != endpoint["target_fraction_float_hex"]
-        or previous_quality["quality_sha256"]
+        or historical_inventory_normalized_quality_sha256(previous_quality)
         != endpoint["previous_quality_sha256"]
-        or target_quality["quality_sha256"] != endpoint["target_quality_sha256"]
+        or historical_inventory_normalized_quality_sha256(target_quality)
+        != endpoint["target_quality_sha256"]
         or aggregate_sha256 != endpoint["target_low_quality_aggregate_sha256"]
         or _canonical_sha256(aggregate_unsigned) != aggregate_sha256
         or aggregate.get("count") != observation["low_quality_prism_count"]

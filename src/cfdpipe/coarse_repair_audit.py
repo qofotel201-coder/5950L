@@ -2221,6 +2221,9 @@ def run_coarse_repair_audit(
                         ),
                         "expected_prism_element_count": runtime_prism_count,
                         "expected_core_element_count": runtime_core_count,
+                        "expected_historical_core_element_count": int(
+                            source_quality["core_element_count"]
+                        ),
                     }
                 elif (
                     schedule_feasibility_endpoint
