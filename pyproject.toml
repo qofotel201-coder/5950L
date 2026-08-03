@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cfdpipe"
+dynamic = ["version"]
+description = "Reproducible Python orchestration for Gmsh, SU2, and ParaView pvbatch"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Science/Research",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+]
+
+[project.optional-dependencies]
+# SU2 and ParaView are external command-line tools and deliberately are not
+# represented as Python dependencies.  This extra is the only supported way
+# to add the Gmsh Python API to an editable development environment.
+gmsh = ["gmsh==4.15.2"]
+
+[project.scripts]
+cfdpipe = "cfdpipe.cli:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "cfdpipe.__version__"}
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["cfdpipe*"]

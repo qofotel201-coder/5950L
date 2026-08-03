@@ -1,0 +1,42 @@
+* text=auto
+
+.editorconfig text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf
+*.txt text eol=lf
+
+*.py text eol=lf
+*.toml text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.csv text eol=lf
+*.cfg text eol=lf
+*.j2 text eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+
+# CAD, meshes, restarts and solver output must never be newline-normalized:
+# their published SHA-256 values bind the exact bytes.  This does not opt the
+# files into source control; the repository ignore policy excludes them.
+*.step -text
+*.stp -text
+*.STEP -text
+*.STP -text
+*.iges -text
+*.igs -text
+*.IGES -text
+*.IGS -text
+*.sldprt -text
+*.SLDPRT -text
+*.brep -text
+*.msh -text
+*.su2 -text
+*.dat -text
+*.csvb -text
+*.vtk -text
+*.vtu -text
+*.pvtu -text
+*.vtm -text

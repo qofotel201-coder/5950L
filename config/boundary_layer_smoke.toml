@@ -1,0 +1,144 @@
+schema = "cfdpipe.boundary_layer_smoke.v2"
+status = "CONFIGURED"
+
+[policy]
+smoke_only = true
+production_mesh_eligible = false
+run_su2 = false
+run_paraview = false
+runtime_tags_present = false
+max_3d_elements = 300000
+
+[provenance]
+project_sha256 = "96ec212caea5b76816adb5089ab77b97d77d131461ad854615940d52e4b3bd1c"
+cases_sha256 = "c27cb7b8b70b04fbfcec1f2cef4be66510672377258f09dc13ba4f93af137435"
+markers_sha256 = "a249c79b9167c782cfa8dbde8632b0fc6e9ca61bda84ae76f475eccf3722fa8e"
+topology_smoke_sha256 = "af7729efc84eb6016b5cb2ddb587ee3dad1e5dcf320ae9d534ff71eefca934f4"
+pipeline_brep_sha256 = "13698e9afb96ac21205c31d8a23f718adece802fda51ed1a67857ba73379e121"
+
+[selection]
+wall_physical_name = "vehicle_internal_and_external_walls"
+wall_surface_fingerprints = [
+  "0c1fb350ba043b88f4170999e12457b344d554766a510a8dd81411125974362f",
+  "0d6496c5a278f5c85422a6a63b467816369af1cf9032c85b8f93a3a9951bdac2",
+  "1707987a8fdcfd04fcdfa2b016dd1c91d344e10da97babcbfdcb05bdaefa555a",
+  "1c5e6d72af03421fa78e57ae4c924b43118d9ef0c98bef8aa77f7a4c2ca61402",
+  "1ee5dd2ace401f18d2a3139f2f8357b2c02ac92488523372a3221835c1dc7f78",
+  "210697a20ac5d3540cb01044a8f0b3a74f7d588865e74790dbc7f073980bfec1",
+  "26d33db152fc199e75c67316317548175de69a254c3a97cbf6bb3846beb81c52",
+  "2706e41a1bfa56bc3954913a91e778aff0686e8cbdf25c789ebdc8956e5cd5db",
+  "2da3af8ddaf90e64c3e651b1a572c1d9e8c40b03f6ba0ee02e31c2a184650da2",
+  "389bfe176b13b3c5de83cdcd8257c0851a36a38a62478c88ebed59cdd4dd2a60",
+  "414492f76a5a2aa2a7b2cf85b34404d6bb5df487745f99d127c4e58b12e02467",
+  "489879f6f4379d399bdb22cf0fda4f21a67c89e6c7831b95fde60fd14727f68d",
+  "52cfcce185c4f20efcc9684deadd0441bc5947d628e251ab9642131a9ba0b3b8",
+  "54f37b17b400aa9e2f62bc052225f8d9d84440540245f9f3f3dcdce36149885e",
+  "5a15a5d945d73590ec92644265f40aee1aa4a2677dab2c169d0dd5e71b09f488",
+  "5d3223ca971d7890842d6fe6940fd226a263d3ec35bcf3e19513e18287ff0386",
+  "5ea5a7ae86400a9a6fda40c2af8767ccbe94eeffe1f0f45699c6e12064e85a99",
+  "63a9e1b958a7b8a11e41bad4bfa57ede426442761f608a23e3de51c0e282bcc2",
+  "655dfe0bcf3d05459bf21e7e713a3b596eb64ca256a2a3f5db3ee9c91b15d4bf",
+  "6ee490d036532554dc6deb429f1f3583909e9aa0b749812a4ff7413be9c33b18",
+  "7150ed7881a47d6a11cb5789fd035e3c171fcfdd4f25566908ecb74ff210a9c4",
+  "773d33b3e091cc6dede77dc476b4bbab5c7ce4779f216fadd23895aebf6c2456",
+  "7f22aaf5751a5593e56a95e9562645bd3e1759e75d122112e549836461651b6a",
+  "866d483f203de65cca2da371d03a1704d357fd7c8d4ffb6bce44247f26f13131",
+  "86cbe21bf682eae6148f6263d0ab4d813dc388fb7603ba89fd294d5bac064b3f",
+  "88f067f52164f87f0c51c21bf1cc64fe74a54e3657a3d80ec87142c65411110e",
+  "8c1b026c845db34e1ec693d4ffbd814f342e478343025f33c13b58f40db52864",
+  "937d561b180b35ef1296884e57a6318f1aeddc51ac77a734ca8e52038fc493d2",
+  "94573b5cebbbac3cc34a9b3e4c6466072e513dbc38184d6bd7dbf580180a18d8",
+  "a25cf6a7267279a231656517e0cb5f8f712da64fd11d42089d19c47ab433fdb9",
+  "a9352ce92ea82b24f62c67b855a919f43c1006a6ac35c66272dae0905e490522",
+  "a938c962148d76f258d849d210da83fbeb74020f46a4f8252ddb167816eeaedd",
+  "b38c4e218d62cee2e069594fb803d708354c3527e4be2f8d96195f09e1d70192",
+  "b41bd18b84251a4de185154aa4ac0e6f6891f44a38147291c1041ad7e154f999",
+  "b8563f28a244707a86c00d53952030eb384ba7ab0daa9329a1c691385cfae89f",
+  "b9656241e69a4e86112746b38700d61202db0a933d5787ea1630c4f2a4322215",
+  "baf086f8b4d55eb51aeca90d403a11ee85d4252fcc9d99edc46b7bababc4dfe1",
+  "bd5c0f03b4407aa5e99c461641e0468efc79fccdd23aec26fa18d4a1651ae429",
+  "c18725b97d82c8812a1ede38d5f4e6fb425f52417ccc3d9ff9d0c543871d319f",
+  "c2fa0b7bdfce16c629e411cc5933d3b25b2ead2b31404ae6db99f8aafafacbce",
+  "c72cc8bcec0ba791f903e209e9e1d79fe87a06c7c1017fe940e94a3fb095ae8d",
+  "ce3341ea2980b49ef141fcdc804e29552d0034e9b2bf332d2bdffad42819e31d",
+  "d0f15a847965a541214861c93a349e4d30079bf0a7e46487a323afa91b62a301",
+  "d72ade54787e1e9a10991d0148620a341e005dcfd41dbc3ebae70b87725e71bc",
+  "e2a7cc9be738da689a425d49d1e1e194c0809062aef800713ddda5a795485def",
+  "ee508d8b0b7850999dcb3e5c7160b1ea41db247def27baa2dae99cbc43528279",
+  "f635f5d86c87aeb266b584dcf5f5447ee16ec8b9eb393045a0abb826584b2f39",
+  "f89775dc00294c3e42732057f07976f29f41e134ad4b8864fd9ef634427da172",
+]
+
+[mesh]
+layer_count_source = "project.mesh.minimum_prism_layers"
+growth_ratio_source = "project.mesh.initial_growth_ratio"
+element_order = 1
+allowed_3d_element_types = ["Prism 6", "Pyramid 5", "Tetrahedron 4"]
+normal_mode = "implicit"
+first_layer_height_m = 2.7645771273320875e-7
+# Gmsh 4.15.2 loses finite one-layer Jacobians when its temporary source shell
+# is constructed directly at the sub-micron physical height.  This previously
+# qualified height is used only to establish topology/orientation; all final
+# 15-layer nodes are then relocated to the schedule above before quality gates.
+construction_first_layer_height_m = 1.3822885636660436e-6
+characteristic_length_m = 0.25
+direction_probe_distance_m = 1.9914661159040682e-5
+recombine = true
+
+[post_mesh_repair]
+mode = "one_layer_orientation_cone_subdivision_v1"
+expected_initial_bad_prism_count = 11
+expected_negative_volume_prism_count = 7
+expected_cone_node_count = 13
+# Recalibrated from retained fail-closed run 013 for the 0.1 safety-factor
+# schedule: no full-layer prism is nonpositive before threshold-aware repair.
+expected_full_layer_bad_prism_count = 0
+# Run 013 confirms 90 layer prisms map to six
+# stable source triangles and three strict/preferred sharp-root groups. Eight
+# non-sharp roots are eligible; every other dynamic sharp root stays protected.
+expected_initial_below_threshold_prism_count = 90
+expected_bad_source_triangle_count = 6
+expected_smoothing_group_count = 3
+expected_smoothed_root_count = 8
+smoothing_interior_weight = 0.02
+minimum_smoothing_margin = 1.0e-4
+minimum_cone_margin = 1.0e-5
+height_tolerance_m = 1.0e-12
+
+[[post_mesh_repair.approved_ambiguous_owners]]
+source_triangle_sha256 = "3f0e27988cd9ed6c2155beb4a5bacd01cc51e536b02f1abbad0f7eef0b1bcf0e"
+wall_surface_fingerprint = "8c1b026c845db34e1ec693d4ffbd814f342e478343025f33c13b58f40db52864"
+owner_root_coordinate_sha256 = "6391ff49d222bbd0a87820550ad77fef5ccb4e53fe130468e9b02be2bdf42e40"
+evidence_manifest_path = "runs/boundary_layer_quality/yplus_corrected_20260802_011/boundary_layer_smoke_manifest.json"
+evidence_manifest_sha256 = "49017b6c32b7f7b16d3a0be9e366c1698524254b867dcb04e6dbf705bc329ae9"
+
+[quality_improvement]
+mode = "stable_surface_threshold_min_v1"
+base_refinement_source = "config/topology_smoke.toml.local_refinement"
+base_excluded_surface_fingerprints = []
+minimum_core_tetra_gamma = 1.0e-3
+maximum_core_tetra_below_gamma_count = 0
+minimum_prism_scaled_jacobian = 1.0e-2
+maximum_prism_below_threshold_element_count = 0
+maximum_prism_below_threshold_column_count = 0
+core_tetra_meshing_algorithm = 10
+core_tetra_meshing_algorithm_name = "HXT"
+scoped_optimizer_policy = "disabled_no_safe_entity_scope"
+scoped_optimizer_evidence = "runs/boundary_layer_quality/probes/core_opt_20260802_0001/manifest.json: Gmsh 4.15.2 reports that optimization of specified model entities is not interfaced"
+
+[[quality_improvement.additional_refinement_groups]]
+name = "core_interface_sliver_regions"
+surface_fingerprint_ids = [
+  "0c1fb350ba043b88f4170999e12457b344d554766a510a8dd81411125974362f",
+  "655dfe0bcf3d05459bf21e7e713a3b596eb64ca256a2a3f5db3ee9c91b15d4bf",
+  "a9352ce92ea82b24f62c67b855a919f43c1006a6ac35c66272dae0905e490522",
+]
+minimum_size_m = 0.05
+distance_max_m = 0.08
+sampling = 100
+
+[schedule]
+source = "cfdpipe.boundary_layer_trial.calculate_boundary_layer_schedule"
+trial_config_sha256 = "e84c918bda324bcf0ba9e1a87904e6f9caa27c836224fc2b8cb94b7fe30ee7d2"
+first_layer_height_field = "mesh.first_layer_height_m"
+direction_probe_distance_field = "mesh.direction_probe_distance_m"

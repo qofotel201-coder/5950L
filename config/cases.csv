@@ -1,0 +1,6 @@
+case_id,mach,altitude_km,alpha_deg,beta_deg,role
+M35_H15_A3_B0,3.5,15,3,0,performance
+M40_H17_A8_B0,4.0,17,8,0,performance
+M45_H19_A8_B0,4.5,19,8,0,performance
+M50_H21_A8_B0,5.0,21,8,0,design
+M50_H21_A8_B2,5.0,21,8,2,sideslip

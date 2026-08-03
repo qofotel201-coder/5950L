@@ -1,0 +1,63 @@
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Editors and operating-system metadata
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Machine-local tool paths (copy tools.example.json instead)
+/config/tools.json
+
+# Generated CFD evidence and potentially very large artifacts
+/runs/*
+!/runs/README.md
+*.msh
+*.su2
+*.vtk
+*.vtu
+*.pvtu
+*.vtm
+*.csvb
+*.restart
+
+# Proprietary/private CAD inputs and derived geometry are transferred out of band
+/geometry/raw/*
+!/geometry/raw/README.md
+/geometry/derived/*
+!/geometry/derived/README.md
+/*.STEP
+/*.step
+/*.STP
+/*.stp
+/*.SLDPRT
+/*.sldprt
+/*.IGS
+/*.igs
+/*.IGES
+/*.iges
+/*.BREP
+/*.brep
+
+# Legacy root copies; config/ is the only project source of truth
+/project.toml
+/cases.csv
+
+# Local logs and transient command output
+*.log
+*.tmp
+*.bak

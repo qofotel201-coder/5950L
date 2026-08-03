@@ -1,0 +1,59 @@
+name: Offline Python gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: offline-python-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cad-free-windows:
+    name: Windows / Python ${{ matrix.python-version }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    env:
+      CFDPIPE_CI_OFFLINE: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUTF8: "1"
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Select Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Compile repository Python
+        shell: pwsh
+        run: python -B -m compileall -q src tests scripts
+
+      - name: Verify repository contract without private inputs
+        shell: pwsh
+        run: python -B scripts/repro/verify_repository.py
+
+      - name: Exercise module entry point
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = (Resolve-Path 'src').Path
+          python -B -m cfdpipe --help
+
+      - name: Run CAD-free standard-library tests
+        shell: pwsh
+        run: python -B scripts/repro/run_cad_free_tests.py
+
+      # Full discovery also validates hash-bound real-project configuration and
+      # therefore remains a local gate after private STEP/BREP restoration.

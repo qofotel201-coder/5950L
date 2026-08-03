@@ -1,0 +1,153 @@
+schema = "cfdpipe.coarse_mesh.v1"
+status = "CONFIGURED"
+
+[scope]
+case_id = "M50_H21_A8_B0"
+mesh_level = "coarse"
+calibration_only_until_resource_gate_passes = true
+production_mesh_candidate = true
+run_su2 = false
+run_paraview = false
+nproc = 1
+gpu_enabled = false
+
+[provenance]
+project_sha256 = "96ec212caea5b76816adb5089ab77b97d77d131461ad854615940d52e4b3bd1c"
+cases_sha256 = "c27cb7b8b70b04fbfcec1f2cef4be66510672377258f09dc13ba4f93af137435"
+markers_sha256 = "a249c79b9167c782cfa8dbde8632b0fc6e9ca61bda84ae76f475eccf3722fa8e"
+topology_smoke_sha256 = "af7729efc84eb6016b5cb2ddb587ee3dad1e5dcf320ae9d534ff71eefca934f4"
+boundary_layer_trial_sha256 = "e84c918bda324bcf0ba9e1a87904e6f9caa27c836224fc2b8cb94b7fe30ee7d2"
+boundary_layer_smoke_sha256 = "65367c83c4c917fe89f3664465e15876295a69d26b05aac32acd4882915e44af"
+rear_outlet_freeze_sha256 = "546db52649730f26ae6d64618d8ffcbd92c29b5f1412f91d8531f47791ce3989"
+source_step_sha256 = "d7d1cbec76ccc6b45aad5689d61a28c41e1ba41b9cda6c90d46eb6ff891c1a6b"
+pipeline_brep_sha256 = "13698e9afb96ac21205c31d8a23f718adece802fda51ed1a67857ba73379e121"
+
+[evidence.authoritative_boundary_layer_mesh]
+path = "../runs/boundary_layer_quality/yplus_corrected_20260802_015/boundary_layer_smoke_manifest.json"
+sha256 = "f679675a699455a9bf95939bf7d244234788c31642349105977f2773a16c9184"
+
+[evidence.solution_yplus]
+path = "../runs/rans_smoke/yplus_final_diagnostic200_001/paraview/rans_diagnostics.json"
+sha256 = "ec19750d76346ddd1ca289ade1d322078c6bbdfc92a865035200bef278859231"
+maximum_yplus = 0.9228949546813965
+first_layer_height_m = 2.7645771273320875e-7
+
+[evidence.rear_outlet_freeze]
+path = "../runs/rear_outlet_freeze/design_case_20260802_003/rear_outlet_freeze_report.json"
+sha256 = "ca74db17db0645f069deee019c4b7bda8bebcc1d585d27b85ec7a24735e74167"
+
+[cell_count]
+target_source = "project.mesh.grid_levels.coarse_target_cells"
+relative_tolerance = 0.05
+candidate_size_selection = "two_or_more_pass_calibrations_power_law"
+candidate_characteristic_length_min_m = 0.05
+candidate_characteristic_length_max_m = 0.40
+
+[calibration]
+# The coarse-only six-surface recovery field targets the symmetric rear-top-
+# shell PLC intersections seen across the coarse probes.  A 0.25 m cap still
+# intersected at global 0.40 m, so the local cap is tightened to 0.225 m.
+# The recovered 0.30 m and 0.32 m projections measured 332375 and 321144
+# cells.  Their fixed locally refined rear-shell floor invalidates a simple
+# global h^-3 extrapolation.  A two-point floor-plus-power fit predicts about
+# 292768 cells at 0.40 m; the actual projection proved 294059.  The second
+# point is 0.32 m: a conservative cubic projection from that measured first
+# point is about 574334 cells, leaving margin below the 750000 calibration cap.
+characteristic_lengths_m = [0.40, 0.32]
+maximum_3d_elements = 750000
+maximum_elapsed_seconds = 840.0
+new_output_directory_required = true
+
+[boundary_layer]
+first_layer_height_source = "evidence.solution_yplus.first_layer_height_m"
+construction_shell_height_source = "base_smoke_contract.construction_first_layer_height_m"
+growth_ratio_source = "project.mesh.initial_growth_ratio"
+minimum_layer_count_source = "project.mesh.minimum_prism_layers"
+target_layer_count_source = "project.mesh.target_prism_layers"
+method = "turbulent_flat_plate_delta99_0p37_re_x_minus_one_fifth"
+thickness_safety_factor = 1.20
+maximum_layer_count = 80
+maximum_core_to_last_layer_ratio = 10.0
+# Keep each wall-normal stack below half of the measured one-sided clearance,
+# leaving a nonzero core allowance even when opposing walls use the same rule.
+maximum_clearance_fraction = 0.40
+planning_core_size_m = 0.07162
+requires_solution_based_yplus_validation = true
+requires_solution_based_outer_edge_validation = true
+
+[meshing]
+element_order = 1
+core_tetra_meshing_algorithm = 10
+core_tetra_meshing_algorithm_name = "HXT"
+general_num_threads = 1
+allowed_3d_element_types = ["Prism 6", "Pyramid 5", "Tetrahedron 4"]
+runtime_tags_present = false
+
+# Coarse-only recovery for the rear top-shell PLC intersections observed in
+# the coarse projections.  Selection remains stable across Gmsh sessions: no
+# runtime entity tags are persisted.  The 0.225 m cap is a bounded tightening
+# from the authoritative 0.25 m HXT scale after a 0.25 m local cap still
+# produced a PLC intersection at global 0.40 m.
+[[meshing.additional_refinement_groups]]
+name = "rear_top_shell_plc_recovery"
+surface_fingerprint_ids = [
+  "866d483f203de65cca2da371d03a1704d357fd7c8d4ffb6bce44247f26f13131",
+  "5ea5a7ae86400a9a6fda40c2af8767ccbe94eeffe1f0f45699c6e12064e85a99",
+  "ce3341ea2980b49ef141fcdc804e29552d0034e9b2bf332d2bdffad42819e31d",
+  "bd5c0f03b4407aa5e99c461641e0468efc79fccdd23aec26fa18d4a1651ae429",
+  "f635f5d86c87aeb266b584dcf5f5447ee16ec8b9eb393045a0abb826584b2f39",
+  "414492f76a5a2aa2a7b2cf85b34404d6bb5df487745f99d127c4e58b12e02467",
+]
+minimum_size_m = 0.225
+distance_max_m = 0.08
+sampling = 100
+
+[quality]
+minimum_core_tetra_gamma = 1.0e-3
+minimum_prism_scaled_jacobian = 1.0e-2
+maximum_nonpositive_volume_count = 0
+maximum_nonpositive_jacobian_count = 0
+maximum_nonfinite_count = 0
+maximum_core_tetra_below_gamma_count = 0
+maximum_prism_below_threshold_element_count = 0
+maximum_prism_below_threshold_column_count = 0
+maximum_nonorthogonality_degrees = 85.0
+maximum_above_70_degrees_fraction = 0.01
+required_wall_fingerprint_coverage = 1.0
+
+[resource]
+minimum_calibration_samples = 2
+safety_factor = 1.30
+os_physical_memory_reserve_bytes = 4294967296
+minimum_disk_free_bytes = 21474836480
+physical_memory_required = true
+pagefile_cannot_rescue_physical_memory_failure = true
+# Isolated Gmsh workers are constrained by a Windows Job Object.  These are
+# process-memory ceilings, not estimates of actual use; a killed worker remains
+# FAIL evidence and must be retried only after reviewing its logs.
+projection_worker_memory_limit_bytes = 2147483648
+calibration_worker_memory_limit_bytes = 3221225472
+worker_monitor_margin_bytes = 536870912
+
+[post_mesh_repair]
+mode = "one_layer_orientation_cone_subdivision_v1"
+expected_initial_bad_prism_count = 11
+expected_negative_volume_prism_count = 7
+expected_cone_node_count = 13
+expected_full_layer_bad_prism_count = 0
+# Six stable source triangles affect every layer in the 60-layer planning stack.
+expected_initial_below_threshold_prism_count = 360
+expected_bad_source_triangle_count = 6
+expected_smoothing_group_count = 3
+expected_smoothed_root_count = 8
+smoothing_interior_weight = 0.02
+minimum_smoothing_margin = 1.0e-4
+minimum_cone_margin = 1.0e-5
+height_tolerance_m = 1.0e-12
+
+[[post_mesh_repair.approved_ambiguous_owners]]
+source_triangle_sha256 = "3f0e27988cd9ed6c2155beb4a5bacd01cc51e536b02f1abbad0f7eef0b1bcf0e"
+wall_surface_fingerprint = "8c1b026c845db34e1ec693d4ffbd814f342e478343025f33c13b58f40db52864"
+owner_root_coordinate_sha256 = "6391ff49d222bbd0a87820550ad77fef5ccb4e53fe130468e9b02be2bdf42e40"
+evidence_manifest_path = "runs/boundary_layer_quality/yplus_corrected_20260802_011/boundary_layer_smoke_manifest.json"
+evidence_manifest_sha256 = "49017b6c32b7f7b16d3a0be9e366c1698524254b867dcb04e6dbf705bc329ae9"
