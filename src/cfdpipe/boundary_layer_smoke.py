@@ -13625,6 +13625,7 @@ class RealProjectBoundaryLayerStrategy:
                     [node for face in faces for node in face],
                 )
             gmsh.option.setNumber("Mesh.Algorithm3D", 10)
+            gmsh.option.setNumber("Mesh.MeshOnlyEmpty", 1)
             RealProjectBoundaryLayerStrategy._configure_production_volume_sizes(gmsh, config)
             gmsh.model.mesh.generate(3)
             gmsh.model.mesh.removeSizeCallback()
