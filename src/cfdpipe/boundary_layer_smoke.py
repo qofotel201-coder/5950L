@@ -10570,6 +10570,142 @@ def _run_frontier_schedule_collar(
                 "quality": coupled_quality,
                 "selected_direction_count": len(coupled_selected),
             }
+            if coupled_quality["status"] == "PASS":
+                if not isinstance(selected_directions, dict):
+                    raise BoundaryLayerSmokeError(
+                        "coupled PASS direction field is not mutable"
+                    )
+                selected_directions.update(coupled_selected)
+                final_application = apply_state(
+                    seed_schedules, selected_directions
+                )
+                final_coordinates = _nodes_from_gmsh(gmsh)
+                final_non_target_sha256 = (
+                    _frontier_collar_node_set_sha256(
+                        final_coordinates, non_target_nodes
+                    )
+                )
+                base_root_moved_count = sum(
+                    tuple(final_coordinates[root])
+                    != tuple(
+                        float(value) for value in root_coordinates[root]
+                    )
+                    for root in normalized_roots
+                )
+                if (
+                    final_non_target_sha256
+                    != entry_non_target_sha256
+                    or base_root_moved_count != 0
+                    or coupled_quality[
+                        "prism_below_threshold_element_count"
+                    ]
+                    != 0
+                    or coupled_quality["nonpositive_element_count"] != 0
+                    or coupled_quality["nonfinite_count"] != 0
+                    or coupled_quality["core_tetra_below_gamma_count"] != 0
+                    or float(
+                        coupled_quality[
+                            "minimum_prism_scaled_jacobian"
+                        ]
+                    )
+                    < minimum_prism_scaled_jacobian
+                ):
+                    raise BoundaryLayerSmokeError(
+                        "coupled PASS failed full-field acceptance"
+                    )
+                coupled_count = int(
+                    coupled_search["quality_evaluation_count"]
+                )
+                total_count = pattern_count + len(candidate_records) + coupled_count
+                if total_count > maximum_total:
+                    raise BoundaryLayerSmokeError(
+                        "coupled PASS exceeded total quality cap"
+                    )
+                coupled_unsigned = {
+                    **coupled_evidence,
+                    "seed_schedule_sha256": final_application[
+                        "root_schedule_sha256"
+                    ],
+                    "final_direction_field_sha256": final_application[
+                        "direction_field_sha256"
+                    ],
+                    "final_coordinate_sha256": final_application[
+                        "coordinate_sha256"
+                    ],
+                }
+                coupled_evidence = {
+                    **coupled_unsigned,
+                    "coupled_rescue_sha256": _canonical_hash(
+                        coupled_unsigned
+                    ),
+                }
+                evidence = {
+                    "schema": (
+                        "cfdpipe.coarse_schedule_frontier_coupled_"
+                        "refinement_selection.v2"
+                    ),
+                    "status": "PASS",
+                    "gate": gate,
+                    "handoff": handoff,
+                    "schedule": schedule_evidence,
+                    "graph": graph,
+                    "ring_widths": ring_widths,
+                    "candidate_records": candidate_records,
+                    "evaluation_evidence": {
+                        **evaluation_evidence(len(candidate_records)),
+                        "coupled_quality_evaluation_count": coupled_count,
+                        "total_quality_evaluation_count": total_count,
+                        "within_cap": total_count <= maximum_total,
+                    },
+                    "selection": {
+                        "selection_basis": (
+                            "ring32_schedule_then_bounded_direction_"
+                            "triple_refinement"
+                        ),
+                        "seed_candidate_index_1_based": int(
+                            seed_record["candidate_index_1_based"]
+                        ),
+                        "seed_ring_width": 32,
+                        "selected_direction_count": len(
+                            coupled_selected
+                        ),
+                    },
+                    "final_state": {
+                        "schedule_sha256": final_application[
+                            "root_schedule_sha256"
+                        ],
+                        "direction_field_sha256": final_application[
+                            "direction_field_sha256"
+                        ],
+                        "coordinate_sha256": final_application[
+                            "coordinate_sha256"
+                        ],
+                        "quality_sha256": coupled_quality[
+                            "quality_sha256"
+                        ],
+                        "quality": coupled_quality,
+                    },
+                    "preservation": {
+                        "entry_non_target_coordinate_sha256": (
+                            entry_non_target_sha256
+                        ),
+                        "final_non_target_coordinate_sha256": (
+                            final_non_target_sha256
+                        ),
+                        "non_target_reproducible": True,
+                        "base_root_moved_count": 0,
+                        "connectivity_sha256": topology[
+                            "connectivity_sha256"
+                        ],
+                    },
+                    "coupled_rescue": coupled_evidence,
+                }
+                return (
+                    evidence,
+                    seed_schedules,
+                    final_application,
+                    coupled_quality,
+                )
         except BaseException as coupled_error:
             coupled_evidence = {
                 "status": "ERROR",
@@ -11237,9 +11373,15 @@ def _run_physical_schedule_first_frontier_direction_continuation(
             "collar_quality_evaluation_count"
         ]
     )
+    coupled_evaluation_count = int(
+        collar_refinement_selection["evaluation_evidence"].get(
+            "coupled_quality_evaluation_count", 0
+        )
+    )
     total_evaluation_count = (
         int(search["quality_evaluation_count"])
         + collar_evaluation_count
+        + coupled_evaluation_count
     )
     if total_evaluation_count > int(caps["maximum_quality_evaluations"]):
         raise BoundaryLayerSmokeError(
@@ -11313,6 +11455,7 @@ def _run_physical_schedule_first_frontier_direction_continuation(
             search["quality_evaluation_count"]
         ),
         "collar_quality_evaluation_count": collar_evaluation_count,
+        "coupled_quality_evaluation_count": coupled_evaluation_count,
         "quality_evaluation_count": total_evaluation_count,
         "changed_root_count": len(selected_changed_records),
         "final_nonpositive_element_count": int(

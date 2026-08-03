@@ -3172,6 +3172,215 @@ def _validate_collar_refinement_selection(
 ) -> dict[str, Any]:
     """Validate the isolated v5 collar evidence after the complete v4 search."""
 
+    if (
+        isinstance(value, Mapping)
+        and value.get("schema")
+        == "cfdpipe.coarse_schedule_frontier_coupled_refinement_selection.v2"
+    ):
+        fields = {
+            "schema",
+            "status",
+            "gate",
+            "handoff",
+            "schedule",
+            "graph",
+            "ring_widths",
+            "candidate_records",
+            "evaluation_evidence",
+            "selection",
+            "final_state",
+            "preservation",
+            "coupled_rescue",
+        }
+        if set(value) != fields or value.get("status") != "PASS":
+            raise CoarseScheduleContinuationError(
+                "coupled collar selection has an incomplete field set"
+            )
+        candidates = value.get("candidate_records")
+        if (
+            value.get("ring_widths") != list(_COLLAR_RING_WIDTHS)
+            or not isinstance(candidates, list)
+            or len(candidates) != len(_COLLAR_RING_WIDTHS)
+        ):
+            raise CoarseScheduleContinuationError(
+                "coupled collar seed candidates are incomplete"
+            )
+        for index, (width, candidate) in enumerate(
+            zip(_COLLAR_RING_WIDTHS, candidates), start=1
+        ):
+            if (
+                not isinstance(candidate, Mapping)
+                or candidate.get("candidate_index_1_based") != index
+                or candidate.get("ring_width") != width
+                or candidate.get("selection_eligible") is not False
+                or candidate.get("status") != "UNSAFE"
+                or candidate.get("unsafe_reasons") != [
+                    "lineage_contained"
+                ]
+            ):
+                raise CoarseScheduleContinuationError(
+                    "coupled collar seed candidate is not the frozen rejected set"
+                )
+            _validate_quality_snapshot(
+                candidate.get("quality"),
+                label=f"coupled collar ring {width} seed quality",
+                expected_endpoint=endpoint,
+                expected_prism_element_count=expected_prism_element_count,
+                expected_core_element_count=expected_core_element_count,
+            )
+        evaluations = value.get("evaluation_evidence")
+        evaluation_fields = {
+            "pattern_quality_evaluation_count",
+            "collar_quality_evaluation_start_index_exclusive",
+            "collar_quality_evaluation_count",
+            "collar_quality_evaluation_end_index_inclusive",
+            "maximum_collar_quality_evaluations",
+            "total_quality_evaluation_count",
+            "maximum_total_quality_evaluations",
+            "within_cap",
+            "coupled_quality_evaluation_count",
+        }
+        if not isinstance(evaluations, Mapping) or set(evaluations) != evaluation_fields:
+            raise CoarseScheduleContinuationError(
+                "coupled collar evaluation evidence is incomplete"
+            )
+        coupled_count = _positive_int(
+            evaluations["coupled_quality_evaluation_count"],
+            "coupled collar quality evaluation count",
+        )
+        expected_total = (
+            pattern_quality_evaluation_count
+            + len(_COLLAR_RING_WIDTHS)
+            + coupled_count
+        )
+        if (
+            evaluations.get("pattern_quality_evaluation_count")
+            != pattern_quality_evaluation_count
+            or evaluations.get("collar_quality_evaluation_count")
+            != len(_COLLAR_RING_WIDTHS)
+            or evaluations.get("total_quality_evaluation_count")
+            != expected_total
+            or evaluations.get("maximum_total_quality_evaluations")
+            != endpoint["caps"]["maximum_quality_evaluations"]
+            or evaluations.get("within_cap") is not True
+            or expected_total
+            > endpoint["caps"]["maximum_quality_evaluations"]
+        ):
+            raise CoarseScheduleContinuationError(
+                "coupled collar evaluation budget is stale"
+            )
+        selection = value.get("selection")
+        if (
+            not isinstance(selection, Mapping)
+            or set(selection)
+            != {
+                "selection_basis",
+                "seed_candidate_index_1_based",
+                "seed_ring_width",
+                "selected_direction_count",
+            }
+            or selection.get("selection_basis")
+            != "ring32_schedule_then_bounded_direction_triple_refinement"
+            or selection.get("seed_candidate_index_1_based") != 6
+            or selection.get("seed_ring_width") != 32
+            or _positive_int(
+                selection.get("selected_direction_count"),
+                "coupled selected direction count",
+            )
+            > 64
+        ):
+            raise CoarseScheduleContinuationError(
+                "coupled collar selection is stale"
+            )
+        rescue = value.get("coupled_rescue")
+        if not isinstance(rescue, Mapping):
+            raise CoarseScheduleContinuationError(
+                "coupled rescue evidence is missing"
+            )
+        unsigned_rescue = dict(rescue)
+        rescue_hash = _sha256(
+            unsigned_rescue.pop("coupled_rescue_sha256", ""),
+            "coupled rescue SHA-256",
+        )
+        rescue_quality = _validate_quality_snapshot(
+            rescue.get("quality"),
+            label="coupled rescue full quality",
+            expected_endpoint=endpoint,
+            expected_prism_element_count=expected_prism_element_count,
+            expected_core_element_count=expected_core_element_count,
+        )
+        search = rescue.get("search")
+        if (
+            _canonical_sha256(unsigned_rescue) != rescue_hash
+            or rescue.get("status") != "PASS"
+            or rescue.get("seed_ring_width") != 32
+            or rescue.get("selected_direction_count")
+            != selection.get("selected_direction_count")
+            or not isinstance(search, Mapping)
+            or search.get("schema")
+            != "cfdpipe.coarse_component_direction_search.v1"
+            or search.get("status") != "PASS"
+            or search.get("quality_evaluation_count") != coupled_count
+            or rescue_quality["status"] != "PASS"
+            or rescue_quality["prism_below_threshold_element_count"] != 0
+            or rescue_quality["core_tetra_below_gamma_count"] != 0
+            or rescue_quality["nonpositive_element_count"] != 0
+            or rescue_quality["nonfinite_count"] != 0
+            or float(rescue_quality["minimum_prism_scaled_jacobian"])
+            < float(
+                endpoint["quality_thresholds"][
+                    "minimum_prism_scaled_jacobian_for_pass"
+                ]
+            )
+        ):
+            raise CoarseScheduleContinuationError(
+                "coupled rescue search or final quality is invalid"
+            )
+        final_state = value.get("final_state")
+        if (
+            not isinstance(final_state, Mapping)
+            or set(final_state)
+            != {
+                "schedule_sha256",
+                "direction_field_sha256",
+                "coordinate_sha256",
+                "quality_sha256",
+                "quality",
+            }
+            or final_state.get("quality") != rescue_quality
+            or final_state.get("quality_sha256")
+            != rescue_quality["quality_sha256"]
+            or final_state.get("schedule_sha256")
+            != rescue.get("seed_schedule_sha256")
+            or final_state.get("direction_field_sha256")
+            != rescue.get("final_direction_field_sha256")
+            or final_state.get("coordinate_sha256")
+            != rescue.get("final_coordinate_sha256")
+        ):
+            raise CoarseScheduleContinuationError(
+                "coupled rescue final state is stale"
+            )
+        preservation = value.get("preservation")
+        if (
+            not isinstance(preservation, Mapping)
+            or preservation.get("non_target_reproducible") is not True
+            or preservation.get("base_root_moved_count") != 0
+            or preservation.get("entry_non_target_coordinate_sha256")
+            != preservation.get("final_non_target_coordinate_sha256")
+        ):
+            raise CoarseScheduleContinuationError(
+                "coupled rescue changed protected coordinates"
+            )
+        return {
+            "status": "PASS",
+            "quality_evaluation_count": (
+                len(_COLLAR_RING_WIDTHS) + coupled_count
+            ),
+            "total_quality_evaluation_count": expected_total,
+            "selected_record": selection,
+            "final_state": dict(final_state),
+        }
+
     fields = {
         "schema",
         "status",
@@ -4623,6 +4832,7 @@ def validate_schedule_frontier_direction_continuation(
         "candidate_root_count",
         "pattern_quality_evaluation_count",
         "collar_quality_evaluation_count",
+        "coupled_quality_evaluation_count",
         "quality_evaluation_count",
         "changed_root_count",
         "final_nonpositive_element_count",
@@ -4631,12 +4841,17 @@ def validate_schedule_frontier_direction_continuation(
         "final_nonfinite_count",
     }
     counts = value["observed_counts"]
-    if set(counts) != count_fields:
+    legacy_count_fields = count_fields - {
+        "coupled_quality_evaluation_count"
+    }
+    if set(counts) not in {frozenset(count_fields), frozenset(legacy_count_fields)}:
         raise CoarseScheduleContinuationError(
             "continuation observed count fields are incomplete"
         )
     normalized_counts = {
-        field: _nonnegative_int(counts[field], f"continuation {field}")
+        field: _nonnegative_int(
+            counts.get(field, 0), f"continuation {field}"
+        )
         for field in count_fields
     }
     if (
@@ -4667,6 +4882,7 @@ def validate_schedule_frontier_direction_continuation(
         > budget_proof["actual_scope"]["quality_evaluation_upper_bound"]
         or normalized_counts["pattern_quality_evaluation_count"]
         + normalized_counts["collar_quality_evaluation_count"]
+        + normalized_counts["coupled_quality_evaluation_count"]
         != normalized_counts["quality_evaluation_count"]
         or normalized_counts["pattern_quality_evaluation_count"]
         > (
@@ -4776,7 +4992,10 @@ def validate_schedule_frontier_direction_continuation(
     )
     if (
         collar_context["quality_evaluation_count"]
-        != normalized_counts["collar_quality_evaluation_count"]
+        != (
+            normalized_counts["collar_quality_evaluation_count"]
+            + normalized_counts["coupled_quality_evaluation_count"]
+        )
         or collar_context["total_quality_evaluation_count"]
         != normalized_counts["quality_evaluation_count"]
     ):
