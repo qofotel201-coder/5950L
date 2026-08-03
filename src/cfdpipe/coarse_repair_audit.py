@@ -2023,7 +2023,7 @@ def run_coarse_repair_audit(
                     projection_evidence.get("config_sha256", "")
                 ),
                 expected_coarse_contract_sha256=str(
-                    contract.get("normalized_config_sha256", "")
+                    projection_evidence.get("coarse_contract_sha256", "")
                 ),
                 expected_characteristic_length_m=first_characteristic,
                 expected_projected_3d_elements=projected_count,
