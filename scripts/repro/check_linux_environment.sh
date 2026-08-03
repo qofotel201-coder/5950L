@@ -51,6 +51,9 @@ def tool(name, expected_version=None):
     status = "REJECTED" if rejected else ("FOUND_VERSION_UNVERIFIED" if value else "MISSING")
     item = {"status": status, "path": value, "expected_version": expected_version, "observed_version": None, "version_status": "UNVERIFIED" if value and not rejected else "NOT_CHECKED", "probe": None}
     if verify_tools and value and not rejected:
+        if name == "SU2_SOL":
+            item.update({"status": "FOUND_NOT_REQUIRED", "version_status": "NOT_REQUIRED"})
+            return item
         args = [value, "--version"] if name in ("gmsh", "mpiexec", "pvbatch") else [value, "--help"]
         probe = run(args)
         text = probe["stdout"] + "\n" + probe["stderr"]

@@ -1547,10 +1547,14 @@ def build_connection_report(
         if isinstance(probe_python, str) and isinstance(
             paraview.get("pvbatch_path"), str
         ):
-            probe_python_matches = os.path.normcase(
-                str(Path(probe_python).resolve(strict=False))
-            ) == os.path.normcase(
-                str(Path(paraview["pvbatch_path"]).resolve(strict=False))
+            probe_path = Path(probe_python).resolve(strict=False)
+            configured_path = Path(paraview["pvbatch_path"]).resolve(strict=False)
+            probe_python_matches = os.path.normcase(str(probe_path)) == os.path.normcase(
+                str(configured_path)
+            ) or (
+                probe_path.is_file()
+                and probe_path.parent == configured_path.parent
+                and probe_path.name == configured_path.name + "-real"
             )
         report["python_to_pvbatch"] = _section(
             evidence,

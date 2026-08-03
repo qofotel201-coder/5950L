@@ -563,6 +563,8 @@ class ConnectPipelineTests(unittest.TestCase):
         for script in (probe_script, inspect_script, postprocess_script):
             script.write_text("# fixture", encoding="utf-8")
         probe_json = paraview_dir / "pvbatch_probe.json"
+        pvbatch_real = pvbatch.with_name(pvbatch.name + "-real")
+        pvbatch_real.write_text("real pvbatch fixture", encoding="utf-8")
         inventory_json = paraview_dir / "solution_inventory.json"
         postprocess_json = paraview_dir / "smoke_postprocess.json"
         integral_csv = paraview_dir / "smoke_integral.csv"
@@ -571,7 +573,7 @@ class ConnectPipelineTests(unittest.TestCase):
             {
                 "status": "PASS",
                 "paraview_version": "6.2",
-                "python_executable": str(pvbatch.resolve()),
+                "python_executable": str(pvbatch_real.resolve()),
             },
         )
         _write_json(
