@@ -14468,7 +14468,6 @@ class RealProjectBoundaryLayerStrategy:
                     "Netgen",
                     force=True,
                     niter=10,
-                    dimTags=[(3, core1_tag), (3, core2_tag)],
                 )
             finally:
                 gmsh.model.mesh.removeSizeCallback()
