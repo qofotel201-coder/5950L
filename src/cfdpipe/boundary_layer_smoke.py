@@ -2877,7 +2877,7 @@ def _validated_local_surface_schedules(
         try:
             validated_homotopy = validate_physical_schedule_homotopy_endpoint(
                 endpoint,
-                expected_binding_sha256=configured_binding_hash,
+                expected_binding_sha256=replay_binding_hash,
                 expected_first_layer_height_m=first_height,
                 expected_layer_count=layer_count,
             )
