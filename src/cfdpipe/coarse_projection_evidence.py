@@ -152,6 +152,16 @@ def _read_manifest(
 
 
 def _matching_path(value: object, expected: Path) -> bool:
+    raw = str(value).replace("\\", "/")
+    expected_raw = str(expected).replace("\\", "/")
+    for anchor in ("/config/", "/runs/"):
+        raw_index = raw.casefold().find(anchor)
+        expected_index = expected_raw.casefold().find(anchor)
+        if raw_index >= 0 and expected_index >= 0:
+            return (
+                raw[raw_index:].casefold()
+                == expected_raw[expected_index:].casefold()
+            )
     try:
         actual = Path(str(value)).expanduser().resolve(strict=False)
     except (OSError, RuntimeError, ValueError):
