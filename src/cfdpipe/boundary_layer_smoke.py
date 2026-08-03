@@ -7387,8 +7387,6 @@ def _prepare_fixed_approved_direction_field(
         source_triangle_wall_fingerprints=(
             source_triangle_wall_fingerprints
         ),
-        source_triangle_normals=source_triangle_normals,
-        incident_normals=incident_normals,
     )
     fresh_topology = _rebuild_owner_free_interaction_topology(
         gmsh,
@@ -11216,6 +11214,8 @@ def _run_physical_schedule_first_frontier_direction_continuation(
         source_triangle_wall_fingerprints=(
             source_triangle_wall_fingerprints
         ),
+        source_triangle_normals=source_triangle_normals,
+        incident_normals=incident_normals,
         chain_origin=chain_origin,
         subdivided_prisms=subdivided_prisms,
         core_volume_records=core_volume_records,
