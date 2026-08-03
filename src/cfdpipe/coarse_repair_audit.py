@@ -2194,19 +2194,33 @@ def run_coarse_repair_audit(
                     ),
                 }
                 if continuation_requested:
+                    raw_counts = raw_discovery.get("observed_counts")
+                    if not isinstance(raw_counts, Mapping):
+                        raise CoarseRepairAuditError(
+                            "physical-schedule continuation has no runtime inventory"
+                        )
+                    runtime_prism_count = int(
+                        raw_counts["prism_element_count"]
+                    )
+                    runtime_core_count = int(
+                        raw_counts["core_element_count"]
+                    )
+                    if runtime_prism_count != int(
+                        source_quality["prism_element_count"]
+                    ):
+                        raise CoarseRepairAuditError(
+                            "physical-schedule continuation changed the frozen "
+                            "Prism6 inventory"
+                        )
                     validator_arguments = {
                         "expected_endpoint": strategy_config[
                             "schedule_direction_continuation_endpoint"
                         ],
-                        "expected_projected_3d_elements": int(
-                            validated_projection["projected_3d_elements"]
+                        "expected_projected_3d_elements": (
+                            runtime_prism_count + runtime_core_count
                         ),
-                        "expected_prism_element_count": int(
-                            source_quality["prism_element_count"]
-                        ),
-                        "expected_core_element_count": int(
-                            source_quality["core_element_count"]
-                        ),
+                        "expected_prism_element_count": runtime_prism_count,
+                        "expected_core_element_count": runtime_core_count,
                     }
                 elif (
                     schedule_feasibility_endpoint
