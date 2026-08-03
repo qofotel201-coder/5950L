@@ -14543,6 +14543,22 @@ class RealProjectBoundaryLayerStrategy:
                     )
             tetra_type = int(gmsh.model.mesh.getElementType("tetrahedron", 1))
             for core_tag, records in remapped_core.items():
+                required_nodes = {
+                    int(node) for record in records for node in record["nodes"]
+                }
+                present_nodes = set(_nodes_from_gmsh(gmsh))
+                nodes = sorted(required_nodes - present_nodes)
+                if nodes:
+                    gmsh.model.mesh.addNodes(
+                        3,
+                        core_tag,
+                        nodes,
+                        [
+                            value
+                            for node in nodes
+                            for value in fresh_coordinates[node]
+                        ],
+                    )
                 gmsh.model.mesh.addElementsByType(
                     core_tag,
                     tetra_type,
