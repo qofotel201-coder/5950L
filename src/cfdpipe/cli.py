@@ -2545,6 +2545,14 @@ def _validate_coarse_repair_audit_pass_manifest(
     homotopy_source_paths: tuple[Path, ...] = ()
     replay_source_inputs: dict[str, Any] | None = None
     if physical_replay:
+        replay_binding_sha256 = str(
+            expected_direction_replay_approval.get(
+                "local_schedule_binding_sha256",
+                local_schedule_binding.get("binding_sha256", ""),
+            )
+            if direction_continuation
+            else local_schedule_binding.get("binding_sha256", "")
+        )
         quality = contract.get("quality")
         projected = projection_evidence.get("projected_3d_elements")
         if (
@@ -2564,7 +2572,7 @@ def _validate_coarse_repair_audit_pass_manifest(
                     expected_characteristic_length_m
                 ),
                 expected_local_schedule_binding_sha256=str(
-                    local_schedule_binding.get("binding_sha256", "")
+                    replay_binding_sha256
                 ),
                 expected_projection_manifest_sha256=str(
                     projection_evidence.get("sha256", "")
@@ -2597,7 +2605,7 @@ def _validate_coarse_repair_audit_pass_manifest(
                     validate_physical_schedule_homotopy_endpoint(
                         expected_physical_schedule_homotopy_endpoint,
                         expected_binding_sha256=str(
-                            local_schedule_binding.get("binding_sha256", "")
+                            replay_binding_sha256
                         ),
                         expected_first_layer_height_m=float(
                             design["first_layer_height_m"]
@@ -2634,7 +2642,7 @@ def _validate_coarse_repair_audit_pass_manifest(
                     expected_direction_replay_approval.get("approval_sha256")
                 ),
                 "local_schedule_binding_sha256": (
-                    local_schedule_binding.get("binding_sha256")
+                    replay_binding_sha256
                 ),
                 "minimum_prism_scaled_jacobian_for_pass": float(
                     quality["minimum_prism_scaled_jacobian"]
