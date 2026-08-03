@@ -1,5 +1,18 @@
 # PLAN
 
+## 本轮任务：AutoDL Pilot coupled direction/schedule audit-only 修复
+
+状态：进行中。以上一轮完整评估但未接受的 ring width 32 状态为显式起点，在同一局部闭包内联合调整外层累计高度与柱方向；不得降低 `0.01` Scaled Jacobian 阈值，不得修改 CAD、marker、首层高度、工况或边界条件，不写生产网格，不调用 SU2/pvbatch/RANS/CUDA。
+
+### 目标与验收标准
+
+- 新策略必须保留上一轮七个 collar 候选及其 SHA-256 证据，以 ring width 32 的 `0.00773904276716142` 最佳未接受状态作为显式、可重放的 coupled 搜索起点；禁止目录搜索或隐式选择旧工件。
+- 对 ring width 32 产生的全部当前阈下棱柱重新建立稳定 root/triangle/wall 闭包，并在该闭包内执行受限方向坐标下降；候选来源、角步长、评估上限和词典序质量目标必须写入机器合同，任何候选产生非正、非有限、core 退化或越界坐标立即回退。
+- 质量目标严格为：非有限数、非正数、core 阈下数、阈下 Prism 数、最大 Scaled Jacobian 缺口、缺口范数、最小 Scaled Jacobian、方向改变量；不得以迁移低质量 lineage 作为改善，最终必须对全局 Prism/core 重新评估。
+- 仅当最小 Prism Scaled Jacobian `>=0.01`、阈下 Prism `=0`、非正/非有限/core 阈下均为0、首层与至少15层原则不变、marker/interface/CAD哈希不变且 A-B-A-B 重放一致时，coupled audit 返回0并冻结参数。
+- 全部本地专项与 CAD-free 回归、repository preflight、compileall、`git diff --check` 必须 PASS；AutoDL 使用固定新提交、干净跟踪工作区、全新 run 目录和 tmux 执行，保存所有候选、返回码、资源、失败单元及输入输出哈希。
+- PASS 后才更新 `PILOT_MESH_REPAIR=PASS`、`PILOT_REPAIR_PARAMETERS=FROZEN`、`PRODUCTION_COARSE_MESH=READY_TO_BUILD`；本轮仍保持 `PRODUCTION_CFD=HOLD`，且不实际生成生产粗/中/细网格。
+
 ## 本轮任务：AutoDL Pilot audit-only 局部棱柱质量修复审计
 
 状态：已完成审计，结论为 FAIL / NO-GO。严格消费 `reports/autodl_pilot_repair_execution_plan.json` 的 `unique_execution_entry`，仅展开 `<UTC>`；七个冻结 collar 候选全部完成评估，但均因产生冻结残差集合之外的新低质量棱柱 lineage 而不可接受。未写网格、未调用 SU2/pvbatch/RANS/CUDA，生产粗网格未获授权。

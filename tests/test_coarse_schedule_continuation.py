@@ -2224,6 +2224,10 @@ class FrontierDirectionDiscoveryCompatibilityTests(unittest.TestCase):
                     selected_directions=directions,
                     source_triangles=[(1, 2, 3)],
                     source_triangle_wall_fingerprints={(1, 2, 3): wall},
+                    source_triangle_normals={(1, 2, 3): (0.0, 0.0, 1.0)},
+                    incident_normals={
+                        root: [(0.0, 0.0, 1.0)] for root in roots
+                    },
                     chain_origin=chain_origin,
                     subdivided_prisms=prism_records,
                     core_volume_records=core_records,
@@ -2235,6 +2239,8 @@ class FrontierDirectionDiscoveryCompatibilityTests(unittest.TestCase):
                     core_tetra_element_tags=[20001],
                     minimum_prism_scaled_jacobian=0.01,
                     minimum_core_tetra_gamma=0.001,
+                    minimum_cone_margin=1.0e-6,
+                    minimum_changed_direction_margin=1.0e-4,
                     apply_state=apply_state,
                     non_target_nodes=[fixed_core_node],
                 )

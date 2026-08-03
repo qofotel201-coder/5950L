@@ -7387,6 +7387,8 @@ def _prepare_fixed_approved_direction_field(
         source_triangle_wall_fingerprints=(
             source_triangle_wall_fingerprints
         ),
+        source_triangle_normals=source_triangle_normals,
+        incident_normals=incident_normals,
     )
     fresh_topology = _rebuild_owner_free_interaction_topology(
         gmsh,
@@ -9804,6 +9806,10 @@ def _run_frontier_schedule_collar(
     selected_directions: Mapping[int, Sequence[float]],
     source_triangles: Sequence[Sequence[int]],
     source_triangle_wall_fingerprints: Mapping[tuple[int, int, int], str],
+    source_triangle_normals: Mapping[
+        tuple[int, int, int], Sequence[float]
+    ],
+    incident_normals: Mapping[int, Sequence[Sequence[float]]],
     chain_origin: Mapping[int, tuple[int, int]],
     subdivided_prisms: Sequence[Mapping[str, Any]],
     core_volume_records: Sequence[Mapping[str, Any]],
@@ -9813,6 +9819,8 @@ def _run_frontier_schedule_collar(
     core_tetra_element_tags: Sequence[int],
     minimum_prism_scaled_jacobian: float,
     minimum_core_tetra_gamma: float,
+    minimum_cone_margin: float,
+    minimum_changed_direction_margin: float,
     apply_state: Callable[
         [Mapping[int, Sequence[float]], Mapping[int, Sequence[float]]],
         dict[str, Any],
@@ -10449,6 +10457,137 @@ def _run_frontier_schedule_collar(
             for record in candidate_records
             for reason in record["unsafe_reasons"]
         )
+        coupled_evidence: dict[str, Any] = {
+            "status": "NOT_RUN",
+            "seed_ring_width": 32,
+        }
+        try:
+            seed_record = next(
+                record
+                for record in candidate_records
+                if record["ring_width"] == 32
+            )
+            seed_schedules = candidate_schedules[
+                int(seed_record["candidate_index_1_based"])
+            ]
+            apply_state(seed_schedules, selected_directions)
+            seed_bad_triangles, seed_low_records, seed_low_aggregate = (
+                _stable_low_quality_prism_lineage(
+                    gmsh,
+                    prism_element_tags=prism_element_tags,
+                    subdivided_prisms=subdivided_prisms,
+                    chain_origin=chain_origin,
+                    root_coordinates=root_coordinates,
+                    prism_volume_fingerprints=prism_volume_fingerprints,
+                    minimum_prism_scaled_jacobian=(
+                        minimum_prism_scaled_jacobian
+                    ),
+                )
+            )
+            seed_triangle_ids = {
+                triangle: _stable_triangle_id(
+                    triangle, root_coordinates
+                )
+                for triangle in seed_bad_triangles
+            }
+            seed_walls_by_id: dict[str, set[str]] = defaultdict(set)
+            for record in seed_low_records:
+                seed_walls_by_id[
+                    str(record["source_triangle_sha256"])
+                ].add(str(record["wall_surface_fingerprint"]))
+            if any(len(values) != 1 for values in seed_walls_by_id.values()):
+                raise BoundaryLayerSmokeError(
+                    "coupled seed triangle has ambiguous wall lineage"
+                )
+            seed_triangle_walls = {
+                triangle: next(
+                    iter(seed_walls_by_id[triangle_id])
+                )
+                for triangle, triangle_id in seed_triangle_ids.items()
+            }
+            seed_components, seed_stable_components = (
+                build_owner_free_components(
+                    seed_bad_triangles,
+                    triangle_stable_ids=seed_triangle_ids,
+                    triangle_wall_fingerprints=seed_triangle_walls,
+                    root_coordinates=root_coordinates,
+                )
+            )
+            coupled_endpoint = (
+                make_owner_free_direction_frontier_triple_refinement_pattern_endpoint(
+                    schedule_endpoint_sha256=str(
+                        endpoint["endpoint_sha256"]
+                    )
+                )
+            )
+            (
+                coupled_search,
+                _coupled_search_quality,
+                coupled_selected,
+            ) = _run_owner_free_component_direction_search(
+                gmsh,
+                components=seed_components,
+                stable_components=seed_stable_components,
+                bad_source_triangles=seed_bad_triangles,
+                triangle_stable_ids=seed_triangle_ids,
+                triangle_wall_fingerprints=seed_triangle_walls,
+                prism_volume_fingerprints=prism_volume_fingerprints,
+                source_triangle_normals=source_triangle_normals,
+                incident_normals=incident_normals,
+                original_directions=selected_directions,
+                root_coordinates=root_coordinates,
+                chains=chains,
+                root_cumulative_heights=seed_schedules,
+                subdivided_prisms=subdivided_prisms,
+                core_volume_records=core_volume_records,
+                minimum_prism_scaled_jacobian=(
+                    minimum_prism_scaled_jacobian
+                ),
+                minimum_core_tetra_gamma=minimum_core_tetra_gamma,
+                minimum_cone_margin=minimum_cone_margin,
+                minimum_changed_direction_margin=(
+                    minimum_changed_direction_margin
+                ),
+                endpoint=coupled_endpoint,
+            )
+            coupled_directions = dict(selected_directions)
+            coupled_directions.update(coupled_selected)
+            apply_state(seed_schedules, coupled_directions)
+            coupled_quality = _owner_free_quality_snapshot(
+                gmsh,
+                prism_element_tags=prism_element_tags,
+                core_element_tags=core_element_tags,
+                core_tetra_element_tags=core_tetra_element_tags,
+                minimum_prism_scaled_jacobian=(
+                    minimum_prism_scaled_jacobian
+                ),
+                minimum_core_tetra_gamma=minimum_core_tetra_gamma,
+                include_deficit_metrics=True,
+            )
+            coupled_evidence = {
+                "status": coupled_quality["status"],
+                "seed_ring_width": 32,
+                "seed_low_quality_aggregate": seed_low_aggregate,
+                "search": coupled_search,
+                "quality": coupled_quality,
+                "selected_direction_count": len(coupled_selected),
+            }
+        except BaseException as coupled_error:
+            coupled_evidence = {
+                "status": "ERROR",
+                "seed_ring_width": 32,
+                "error": {
+                    "type": type(coupled_error).__name__,
+                    "message": str(coupled_error),
+                    "traceback": "".join(
+                        traceback.format_exception(
+                            type(coupled_error),
+                            coupled_error,
+                            coupled_error.__traceback__,
+                        )
+                    ),
+                },
+            }
         error = BoundaryLayerSmokeError(
             "frontier collar has no lineage- and preservation-safe candidate: "
             f"unsafe_reason_counts={dict(sorted(reason_counts.items()))}"
@@ -10465,6 +10604,7 @@ def _run_frontier_schedule_collar(
             ),
             "unsafe_reason_counts": dict(sorted(reason_counts.items())),
             "candidate_records": candidate_records,
+            "coupled_diagnostic": coupled_evidence,
         }
         raise error
 
@@ -11085,6 +11225,10 @@ def _run_physical_schedule_first_frontier_direction_continuation(
         core_tetra_element_tags=core_tetra_tags,
         minimum_prism_scaled_jacobian=prism_threshold,
         minimum_core_tetra_gamma=core_threshold,
+        minimum_cone_margin=minimum_cone_margin,
+        minimum_changed_direction_margin=(
+            minimum_changed_direction_margin
+        ),
         apply_state=apply_state,
         non_target_nodes=non_target_nodes,
     )
