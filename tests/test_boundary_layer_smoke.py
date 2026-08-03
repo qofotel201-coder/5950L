@@ -615,6 +615,33 @@ class _FineSearchGmsh:
 
 
 class BoundaryLayerSmokeTests(unittest.TestCase):
+    def test_uniform_smoke_schedule_covers_every_stable_wall(self) -> None:
+        config = {
+            "smoke_only": True,
+            "production_mesh_eligible": False,
+            "su2_called": False,
+            "paraview_called": False,
+            "wall_surface_fingerprints": list(_FPS),
+            "layer_count": 15,
+            "first_layer_height_m": 0.01,
+            "growth_ratio": 1.2,
+        }
+
+        schedules, evidence = _validated_local_surface_schedules(config)
+
+        self.assertEqual(set(_FPS), set(schedules))
+        self.assertTrue(all(len(values) == 15 for values in schedules.values()))
+        self.assertTrue(all(values[0] == 0.01 for values in schedules.values()))
+        self.assertEqual("PASS", evidence["status"])
+        self.assertEqual("uniform_design_stack", evidence["schedule_mode"])
+        self.assertEqual(48, evidence["surface_count"])
+
+        unsafe = {**config, "production_mesh_eligible": True}
+        with self.assertRaisesRegex(
+            BoundaryLayerSmokeError, "complete smoke safety scope"
+        ):
+            _validated_local_surface_schedules(unsafe)
+
     @staticmethod
     def _fine_quality_snapshot(*, failing_prism_tags, **kwargs):
         prism_tags = [int(value) for value in kwargs["prism_element_tags"]]

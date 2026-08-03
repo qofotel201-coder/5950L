@@ -2646,7 +2646,45 @@ def _validated_local_surface_schedules(
     design stack.  Projection-only exits before this function is reached.
     """
 
-    contract_mode = config.get("contract_mode")
+    contract_mode = config.get("contract_mode", "smoke")
+    if contract_mode == "smoke":
+        if (
+            config.get("smoke_only") is not True
+            or config.get("production_mesh_eligible") is not False
+            or config.get("su2_called") is not False
+            or config.get("paraview_called") is not False
+            or config.get("local_boundary_layer_schedule") is not None
+        ):
+            raise BoundaryLayerSmokeError(
+                "uniform smoke schedule violates the complete smoke safety scope"
+            )
+        fingerprints = {
+            str(value).casefold()
+            for value in config.get("wall_surface_fingerprints", [])
+        }
+        if len(fingerprints) != _REQUIRED_WALL_MEMBER_COUNT:
+            raise BoundaryLayerSmokeError(
+                "uniform smoke schedule does not cover all 48 stable walls"
+            )
+        cumulative = _repair_layer_schedule(config)
+        schedules = {
+            fingerprint: list(cumulative) for fingerprint in sorted(fingerprints)
+        }
+        unsigned_evidence = {
+            "schema": "cfdpipe.uniform_boundary_layer_schedule_binding.v1",
+            "status": "PASS",
+            "schedule_mode": "uniform_design_stack",
+            "surface_count": len(schedules),
+            "layer_count": len(cumulative),
+            "first_layer_height_m": cumulative[0],
+            "minimum_surface_total_thickness_m": cumulative[-1],
+            "maximum_surface_total_thickness_m": cumulative[-1],
+            "runtime_entity_tags_present_in_binding": False,
+        }
+        return schedules, {
+            **unsigned_evidence,
+            "binding_sha256": _canonical_hash(unsigned_evidence),
+        }
     mode_matrix = {
         "coarse_calibration": {
             "smoke_only": False,

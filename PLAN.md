@@ -1,5 +1,20 @@
 # PLAN
 
+## 本轮任务：AutoDL L6 十五层边界层小网格与诊断 RANS 验收
+
+状态：进行中。仅从已验证的只读 STEP 与共享拓扑 BREP 重建真实模型小规模 15 层混合网格，并在严格网格门通过后依次执行一阶 SST 诊断和显式 restart 二阶 SST 诊断；不运行生产网格或生产 RANS，不启用 CUDA，不修改冻结合同。
+
+### 目标与验收标准
+
+- 固定本地、GitHub 与 AutoDL Git 提交；远端跟踪工作区保持干净。重新验证 STEP/BREP 的冻结 SHA-256、只读权限和 Git 忽略状态，以共享拓扑 BREP 为计算几何，STEP 仅用于来源追溯。
+- 先保存当前 `gmsh inspect`、`boundary-layer-smoke`、`rans-smoke` 与 `rear-outlet-freeze-check` 的实际 CLI 帮助，再通过配置和 provenance 确认重建依赖；优先重建，仅列出确实不可重建的最小历史 JSON，不上传整个 `runs`。
+- 在全新且唯一的 `runs/boundary_layer_quality/autodl_l6_<UTC>` 中生成真实模型 15 层小规模混合网格。边界层只作用于真实壁面，不作用于 farfield、后部出口、内部测量面或共享接口。
+- 网格 manifest 必须严格 PASS：marker 与共享接口无错误，所有要求柱列不少于 15 层，非正体积、非正 Jacobian、非有限质量均为 0，SU2 读取成功；失败时禁止启动 RANS，且不得降低既有质量阈值。
+- 仅在显式 PASS 网格 manifest 上运行 `M50_H21_A8_B0` 的低 CFL、一阶 SST 诊断；其严格 PASS 且 restart 完整后，使用显式一阶 manifest/restart 运行二阶诊断。所有输入、命令、返回码、资源、日志和工件均以 SHA-256 绑定，禁止搜索旧目录。
+- 仅由 pvbatch 读取本轮二阶结果，严格输出 y+、质量守恒、两个后部出口、回流和内部测量面诊断；字段缺失即 FAIL，不用替代字段。结果保持 `diagnostic_only=true`、`production_eligible=false`、`convergence_claimed=false`，不作生产或物理解读。
+- L6 只有在真实输入、几何、网格、一阶/二阶 SST、pvbatch、最大 y+<1、质量平衡、双出口诊断及本地/远程证据全部严格通过后才标记 PASS；证据使用唯一目录打包、回传并在本机复验 SHA-256 与验收报告。
+- PASS 后生成下一阶段最小 Pilot 修复执行计划，但不启动生产规模 Pilot；状态更新为 `REMOTE_AUTODL_L6=PASS`、`PILOT_MESH_REPAIR=READY`、`RANS=DIAGNOSTIC_L6_PASS`、`PRODUCTION_CFD=HOLD`，Linux 仍非完整生产 VERIFIED。
+
 ## 本轮任务：AutoDL L4 私有输入门与 L5 真实项目小型连接复现
 
 状态：已完成；AutoDL L4严格私有输入门和L5真实项目小型连接均为PASS。不运行边界层、Pilot修复、RANS或生产网格，不启用CUDA，不作物理解读。Linux平台仍不是完整生产VERIFIED。
