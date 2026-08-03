@@ -14360,6 +14360,12 @@ class RealProjectBoundaryLayerStrategy:
             gmsh.option.setNumber("Mesh.FirstElementTag", maximum_element_tag + 1)
             try:
                 gmsh.model.mesh.generate(3)
+                gmsh.model.mesh.optimize(
+                    "Netgen",
+                    force=True,
+                    niter=10,
+                    dimTags=[(3, core1_tag), (3, core2_tag)],
+                )
             finally:
                 gmsh.model.mesh.removeSizeCallback()
                 gmsh.option.setNumber("Mesh.MeshOnlyEmpty", 0)
