@@ -16,6 +16,7 @@ from cfdpipe.boundary_layer_smoke import (
     BoundaryLayerSmokeError,
     RealProjectBoundaryLayerStrategy,
     _apply_absolute_fraction_chain_state,
+    _call_audit,
     _apply_one_layer_orientation_cone_subdivision,
     _chebyshev_cone_direction,
     _closest_feasible_cone_direction,
@@ -615,6 +616,38 @@ class _FineSearchGmsh:
 
 
 class BoundaryLayerSmokeTests(unittest.TestCase):
+    def test_production_replay_uses_coarse_mixed_mesh_audit_contract(self) -> None:
+        payload = {
+            name: {}
+            for name in (
+                "nodes",
+                "elements",
+                "marker_faces",
+                "shared_interface_faces",
+                "quality",
+                "wall_columns",
+                "collar_faces",
+                "wall_base_faces",
+                "prism_base_faces",
+                "collar_base_faces",
+                "role_faces",
+            )
+        }
+        config = {
+            "wall_surface_fingerprints": [],
+            "solver_marker_names": [],
+            "layer_count": 60,
+            "max_3d_elements": 5_500_000,
+            "contract_mode": "coarse_repair_audit_only",
+            "production_replay_after_audit": True,
+        }
+        with patch(
+            "cfdpipe.boundary_layer_smoke.audit_mixed_mesh",
+            return_value={"status": "PASS"},
+        ) as mocked:
+            self.assertEqual(_call_audit(payload, config), {"status": "PASS"})
+        self.assertEqual(mocked.call_args.kwargs["contract_mode"], "coarse_calibration")
+
     def test_uniform_smoke_schedule_covers_every_stable_wall(self) -> None:
         config = {
             "smoke_only": True,

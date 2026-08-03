@@ -14716,13 +14716,19 @@ def _call_audit(payload: Mapping[str, Any], config: Mapping[str, Any]) -> dict[s
     }
     if set(payload) != required:
         raise BoundaryLayerSmokeError("strategy audit payload is incomplete")
+    contract_mode = str(config.get("contract_mode", "smoke"))
+    if config.get("production_replay_after_audit") is True:
+        # The frozen Pilot strategy deliberately retains its audit-only mode as
+        # provenance.  A write-capable production replay nevertheless needs the
+        # same >=15-layer mixed-mesh contract used by coarse calibration.
+        contract_mode = "coarse_calibration"
     return audit_mixed_mesh(
         **payload,
         wall_fingerprints=config["wall_surface_fingerprints"],
         expected_marker_names=config["solver_marker_names"],
         requested_layers=config["layer_count"],
         max_elements=config["max_3d_elements"],
-        contract_mode=str(config.get("contract_mode", "smoke")),
+        contract_mode=contract_mode,
     )
 
 
