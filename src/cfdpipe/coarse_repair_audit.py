@@ -939,7 +939,10 @@ def make_coarse_repair_audit_strategy_config(
             try:
                 homotopy_endpoint = make_physical_schedule_homotopy_endpoint(
                     baseline_binding_sha256=str(
-                        local_schedule_binding.get("binding_sha256", "")
+                        validated_replay.get(
+                            "local_schedule_binding_sha256",
+                            local_schedule_binding.get("binding_sha256", ""),
+                        )
                     ),
                     first_layer_height_m=float(result["first_layer_height_m"]),
                     layer_count=int(result["layer_count"]),
@@ -947,7 +950,10 @@ def make_coarse_repair_audit_strategy_config(
                 homotopy_endpoint = validate_physical_schedule_homotopy_endpoint(
                     homotopy_endpoint,
                     expected_binding_sha256=str(
-                        local_schedule_binding.get("binding_sha256", "")
+                        validated_replay.get(
+                            "local_schedule_binding_sha256",
+                            local_schedule_binding.get("binding_sha256", ""),
+                        )
                     ),
                     expected_first_layer_height_m=float(
                         result["first_layer_height_m"]
