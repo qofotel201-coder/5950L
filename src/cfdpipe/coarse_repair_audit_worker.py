@@ -12,6 +12,7 @@ import argparse
 import copy
 from datetime import datetime, timezone
 import importlib
+import inspect
 import json
 import math
 import os
@@ -638,11 +639,18 @@ def execute_repair_audit_worker(
             )
         wrapper["worker"]["normalized_resource_matches_raw"] = True
 
-        binding = heavy.load_and_bind_local_schedule(
-            coarse_contract=contract,
-            plan_path=local_schedule["path"],
-            plan_sha256=local_schedule["sha256"],
-        )
+        binding_arguments = {
+            "coarse_contract": contract,
+            "plan_path": local_schedule["path"],
+            "plan_sha256": local_schedule["sha256"],
+        }
+        if "expected_coarse_contract_sha256" in inspect.signature(
+            heavy.load_and_bind_local_schedule
+        ).parameters:
+            binding_arguments["expected_coarse_contract_sha256"] = str(
+                projection_evidence["coarse_contract_sha256"]
+            )
+        binding = heavy.load_and_bind_local_schedule(**binding_arguments)
         if (
             not isinstance(binding, Mapping)
             or binding.get("schema")
@@ -702,7 +710,9 @@ def execute_repair_audit_worker(
                     direction_audit_confirmation_path,
                     direction_audit_confirmation_sha256,
                     expected_audit_strategy=expected_audit_strategy,
-                    expected_coarse_contract_sha256=coarse_contract_sha256,
+                    expected_coarse_contract_sha256=str(
+                        projection_evidence["coarse_contract_sha256"]
+                    ),
                     expected_characteristic_length_m=characteristic,
                     expected_local_schedule_binding=binding,
                     expected_projection_evidence=projection_evidence,
@@ -738,7 +748,10 @@ def execute_repair_audit_worker(
                     homotopy_endpoint = (
                         replay_module.make_physical_schedule_homotopy_endpoint(
                             baseline_binding_sha256=str(
-                                binding["binding_sha256"]
+                                direction_replay_approval.get(
+                                    "local_schedule_binding_sha256",
+                                    binding["binding_sha256"],
+                                )
                             ),
                             first_layer_height_m=float(
                                 design["first_layer_height_m"]
@@ -750,7 +763,10 @@ def execute_repair_audit_worker(
                         replay_module.validate_physical_schedule_homotopy_endpoint(
                             homotopy_endpoint,
                             expected_binding_sha256=str(
-                                binding["binding_sha256"]
+                                direction_replay_approval.get(
+                                    "local_schedule_binding_sha256",
+                                    binding["binding_sha256"],
+                                )
                             ),
                             expected_first_layer_height_m=float(
                                 design["first_layer_height_m"]
@@ -808,7 +824,9 @@ def execute_repair_audit_worker(
                         homotopy_audit_manifest_path,
                         homotopy_audit_manifest_sha256,
                         output_root=output_root,
-                        expected_contract_sha256=coarse_contract_sha256,
+                        expected_contract_sha256=str(
+                            projection_evidence["coarse_contract_sha256"]
+                        ),
                         expected_characteristic_length_m=characteristic,
                         expected_projection_evidence=projection_evidence,
                         expected_local_schedule_binding=binding,
@@ -841,15 +859,26 @@ def execute_repair_audit_worker(
                     "homotopy_discovery": homotopy_audit_evidence[
                         "discovery"
                     ],
-                    "homotopy_endpoint_sha256": homotopy_endpoint[
-                        "endpoint_sha256"
-                    ],
-                    "direction_replay_approval_sha256": (
-                        direction_replay_approval_sha256
+                    "homotopy_endpoint_sha256": homotopy_audit_evidence[
+                        "discovery"
+                    ].get("source_bindings", {}).get(
+                        "homotopy_endpoint_sha256",
+                        homotopy_endpoint["endpoint_sha256"],
                     ),
-                    "local_schedule_binding_sha256": binding[
-                        "binding_sha256"
-                    ],
+                    "direction_replay_approval_sha256": (
+                        homotopy_audit_evidence["discovery"].get(
+                            "source_bindings", {}
+                        ).get(
+                            "direction_replay_approval_sha256",
+                            direction_replay_approval_sha256,
+                        )
+                    ),
+                    "local_schedule_binding_sha256": homotopy_audit_evidence[
+                        "discovery"
+                    ].get("source_bindings", {}).get(
+                        "local_schedule_binding_sha256",
+                        binding["binding_sha256"],
+                    ),
                     "minimum_prism_scaled_jacobian_for_pass": float(
                         quality["minimum_prism_scaled_jacobian"]
                     ),
