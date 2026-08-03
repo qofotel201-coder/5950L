@@ -22,28 +22,28 @@
     {
       "name": "farfield",
       "bounds_m": [-0.522, -3.606, -7.212, 6.306, 3.606, 7.212],
-      "coarse_size_m": 0.18,
+      "coarse_size_m": 0.05904,
       "transition_width_m": 0.5,
       "intent": "coarsest outer-field tetrahedral core"
     },
     {
       "name": "transition",
       "bounds_m": [-0.2, -1.5, -1.5, 5.6, 1.5, 1.5],
-      "coarse_size_m": 0.12,
+      "coarse_size_m": 0.03936,
       "transition_width_m": 0.5,
       "intent": "smooth bridge between near-body and farfield sizes"
     },
     {
       "name": "near_body_core",
       "bounds_m": [-0.1, -0.8, -0.8, 5.4, 0.8, 0.8],
-      "coarse_size_m": 0.08,
+      "coarse_size_m": 0.02624,
       "transition_width_m": 0.3,
       "intent": "refined tetrahedral core adjacent to the frozen prism top"
     },
     {
       "name": "internal_passage",
       "bounds_m": [0.0, -0.36, -0.36, 5.3, 0.36, 0.36],
-      "coarse_size_m": 0.055,
+      "coarse_size_m": 0.01804,
       "transition_width_m": 0.2,
       "intent": "finest core sizing for the internal passage"
     }
@@ -67,7 +67,14 @@
     "allowed_volume_scale_maximum": 2.0,
     "boundary_layer_reduction_allowed": false,
     "wall_topology_change_allowed": false,
-    "pilot_replay_required_before_core_remesh": true
+    "pilot_replay_required_before_core_remesh": true,
+    "autodl_scale_1_observation": {
+      "utc_run_id": "production_coarse_occ_20260804T073000Z_s1000",
+      "original_core_tetrahedra": 166405,
+      "frozen_prisms": 280320,
+      "uniform_base_size_factor_applied": 0.328,
+      "method": "cube-root count calibration to a 5000000-cell total target"
+    }
   },
   "unique_execution_entry": "CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python ./scripts/cfdpipe.sh pipeline production-coarse-mesh --pilot-manifest <PASS_PILOT_MANIFEST> --pilot-sha256 <SHA256> --family-plan reports/production_mesh_family_plan.json --family-plan-sha256 <SHA256> --volume-scale <CALIBRATED_SCALE> --output runs/mesh/coarse/<RUN_ID>",
   "next_level_gate": "Review coarse refinement regions and all quality gates before authorizing medium or fine mesh generation"
