@@ -55,6 +55,20 @@ def _is_sha256(value: object) -> bool:
     return all(character in "0123456789abcdef" for character in value.casefold())
 
 
+def _matching_repository_path(value: object, expected: object) -> bool:
+    raw = str(value).replace("\\", "/")
+    expected_raw = str(expected).replace("\\", "/")
+    for anchor in ("/config/", "/geometry/", "/runs/"):
+        raw_index = raw.casefold().find(anchor)
+        expected_index = expected_raw.casefold().find(anchor)
+        if raw_index >= 0 and expected_index >= 0:
+            return (
+                raw[raw_index:].casefold()
+                == expected_raw[expected_index:].casefold()
+            )
+    return os.path.normcase(raw) == os.path.normcase(expected_raw)
+
+
 def _finite(value: object, label: str, *, positive: bool = False) -> float:
     if isinstance(value, bool):
         raise BoundaryLayerScheduleBindingError(f"{label} is not finite numeric data")
@@ -308,16 +322,31 @@ def bind_boundary_layer_local_schedule(
     source_plan_path: str | os.PathLike[str],
     source_plan_sha256: str,
     source_plan_size_bytes: int,
+    expected_coarse_contract_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Validate one already SHA-verified plan and return a self-hashed binding."""
 
     expected = _contract_inputs(coarse_contract)
+    if expected_coarse_contract_sha256 is not None:
+        lineage_hash = str(expected_coarse_contract_sha256).casefold()
+        if not _is_sha256(lineage_hash):
+            raise BoundaryLayerScheduleBindingError(
+                "expected coarse contract SHA-256 is invalid"
+            )
+        expected["coarse_contract_sha256"] = lineage_hash
     if not _is_sha256(str(source_plan_sha256).casefold()):
         raise BoundaryLayerScheduleBindingError("source plan SHA-256 is invalid")
     if not isinstance(plan_document, Mapping):
         raise BoundaryLayerScheduleBindingError("local schedule plan is not a mapping")
     if plan_document.get("schema") != _PLAN_SCHEMA or plan_document.get("status") != "PASS":
         raise BoundaryLayerScheduleBindingError("local schedule plan is not schema/PASS")
+    if expected_coarse_contract_sha256 is not None:
+        lineage_hash = plan_document.get("clearance_evidence_contract_sha256")
+        if not _is_sha256(lineage_hash):
+            raise BoundaryLayerScheduleBindingError(
+                "legacy local schedule clearance lineage is invalid"
+            )
+        expected["clearance_evidence_contract_sha256"] = str(lineage_hash)
     safety_flags = {
         "planning_only": True,
         "extrusion_authorized": False,
@@ -365,7 +394,9 @@ def bind_boundary_layer_local_schedule(
     provenance = coarse_contract.get("provenance", {})
     if (
         not isinstance(provenance, Mapping)
-        or str(source.get("path", "")) != expected["pipeline_brep_path"]
+        or not _matching_repository_path(
+            source.get("path", ""), expected["pipeline_brep_path"]
+        )
         or source.get("sha256") != provenance.get("pipeline_brep_sha256")
         or source.get("unchanged_in_clearance_audit") is not True
         or source.get("gmsh_finalize_called") is not True
@@ -931,6 +962,7 @@ def load_and_bind_boundary_layer_local_schedule(
     coarse_contract: Mapping[str, Any],
     plan_path: str | os.PathLike[str],
     plan_sha256: str,
+    expected_coarse_contract_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Read one explicit plan file and bind it to ``coarse_contract``."""
 
@@ -941,6 +973,7 @@ def load_and_bind_boundary_layer_local_schedule(
         source_plan_path=resolved,
         source_plan_sha256=actual,
         source_plan_size_bytes=size,
+        expected_coarse_contract_sha256=expected_coarse_contract_sha256,
     )
 
 

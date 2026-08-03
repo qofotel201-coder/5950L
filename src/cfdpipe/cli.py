@@ -4106,18 +4106,15 @@ def _handle_pipeline_coarse_repair_audit(args: argparse.Namespace) -> int:
                 contract["resource"]["projection_worker_memory_limit_bytes"]
             ),
         )
-        projection_contract_sha256 = str(
-            projection_evidence["coarse_contract_sha256"]
-        )
-        if projection_contract_sha256 != contract["normalized_config_sha256"]:
-            contract = dict(contract)
-            contract["normalized_config_sha256"] = projection_contract_sha256
         local_schedule_path, local_schedule_sha256, local_schedule_binding = (
             _load_coarse_local_schedule_binding(
                 args.local_schedule,
                 args.local_schedule_sha256,
                 output_root=resolved_root,
                 contract=contract,
+                expected_coarse_contract_sha256=str(
+                    projection_evidence["coarse_contract_sha256"]
+                ),
             )
         )
     except (OSError, CoarseProjectionEvidenceError, ValueError) as error:
@@ -5128,6 +5125,7 @@ def _load_coarse_local_schedule_binding(
     *,
     output_root: Path,
     contract: dict[str, Any],
+    expected_coarse_contract_sha256: str | None = None,
 ) -> tuple[Path, str, dict[str, Any]]:
     """Resolve and fully bind one explicit local schedule before worker launch."""
 
@@ -5172,6 +5170,7 @@ def _load_coarse_local_schedule_binding(
             coarse_contract=contract,
             plan_path=resolved,
             plan_sha256=expected,
+            expected_coarse_contract_sha256=expected_coarse_contract_sha256,
         )
     except BoundaryLayerScheduleBindingError as error:
         raise ValueError(f"local boundary-layer schedule is invalid: {error}") from error
