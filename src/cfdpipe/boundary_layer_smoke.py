@@ -10444,8 +10444,14 @@ def _run_frontier_schedule_collar(
         if record["status"] != "UNSAFE"
     ]
     if not safe_candidates:
+        reason_counts = Counter(
+            reason
+            for record in candidate_records
+            for reason in record["unsafe_reasons"]
+        )
         raise BoundaryLayerSmokeError(
-            "frontier collar has no lineage- and preservation-safe candidate"
+            "frontier collar has no lineage- and preservation-safe candidate: "
+            f"unsafe_reason_counts={dict(sorted(reason_counts.items()))}"
         )
 
     def closure_rank(record: Mapping[str, Any]) -> tuple[Any, ...]:
