@@ -2418,7 +2418,7 @@ def _validate_coarse_repair_hard_limit(
     )
     if (
         value.get("requested_process_memory_limit_bytes") != limit_bytes
-        or value.get("backend") != "windows_job_object"
+        or value.get("backend") not in {"windows_job_object", "linux_rlimit_as"}
         or not isinstance(job, Mapping)
         or set(job)
         != {

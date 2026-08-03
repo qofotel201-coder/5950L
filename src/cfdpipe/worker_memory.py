@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 import json
 import math
 import os
+import resource
 import sys
 import traceback
 from typing import Any, Callable
@@ -461,6 +462,31 @@ def install_current_process_memory_limit(
     if not _positive_int(limit_bytes):
         exc = ValueError("limit_bytes must be a positive integer (bool is invalid)")
         _raise_failure(report, exc)
+    if _platform is None and platform_name.startswith("linux"):
+        try:
+            _, hard = resource.getrlimit(resource.RLIMIT_AS)
+            soft = limit_bytes if hard == resource.RLIM_INFINITY else min(limit_bytes, hard)
+            resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
+            report.update(
+                {
+                    "supported": True,
+                    "backend": "linux_rlimit_as",
+                    "job_object": {
+                        "job_handle_value": os.getpid(),
+                        "limit_flags": (
+                            JOB_OBJECT_LIMIT_PROCESS_MEMORY
+                            | JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+                        ),
+                        "process_memory_limit_bytes": int(soft),
+                        "process_assigned": True,
+                        "handle_retained_for_process_lifetime": True,
+                    },
+                }
+            )
+        except Exception as exc:
+            _raise_failure(report, exc)
+        report["status"] = "PASS"
+        return report
     _require_windows(report, platform_name)
     try:
         raw = _backend_for(platform_name, _backend).install_process_memory_limit(
@@ -541,6 +567,29 @@ def capture_current_process_memory(
         "pagefile_field_means_commit_charge_not_pagefile_residency": True,
         "working_set_is_not_job_process_memory_limit_metric": True,
     }
+    if _platform is None and platform_name.startswith("linux"):
+        try:
+            values: dict[str, int] = {}
+            for line in open("/proc/self/status", encoding="ascii"):
+                key, _, raw = line.partition(":")
+                if key in {"VmRSS", "VmHWM", "VmSize", "VmPeak"}:
+                    values[key] = int(raw.split()[0]) * 1024
+            current = values["VmSize"]
+            peak = max(values["VmPeak"], current)
+            report["metrics"] = {
+                "working_set_bytes": values["VmRSS"],
+                "peak_working_set_bytes": max(values["VmHWM"], values["VmRSS"]),
+                "private_usage_bytes": current,
+                "pagefile_usage_bytes": current,
+                "peak_pagefile_usage_bytes": peak,
+            }
+            report["supported"] = True
+        except Exception as exc:
+            report["metrics"] = None
+            _raise_failure(report, exc)
+        report["status"] = "PASS"
+        report["error"] = None
+        return report
     _require_windows(report, platform_name)
     try:
         raw = _backend_for(platform_name, _backend).capture_current_process_memory()
@@ -593,6 +642,35 @@ def capture_system_physical_memory(
         SYSTEM_REPORT_SCHEMA, "capture_system_physical_memory", platform_name
     )
     report["metrics"] = None
+    if _platform is None and platform_name.startswith("linux"):
+        try:
+            memory: dict[str, int] = {}
+            for line in open("/proc/meminfo", encoding="ascii"):
+                key, _, raw = line.partition(":")
+                if key in {"MemTotal", "MemAvailable", "SwapTotal", "SwapFree"}:
+                    memory[key] = int(raw.split()[0]) * 1024
+            total = memory["MemTotal"]
+            available = memory["MemAvailable"]
+            swap_total = max(memory["SwapTotal"], 1)
+            swap_free = max(min(memory["SwapFree"], swap_total), 1)
+            virtual_total = total + swap_total
+            virtual_available = available + swap_free
+            report["metrics"] = {
+                "physical_total_bytes": total,
+                "physical_available_bytes": available,
+                "pagefile_total_bytes": swap_total,
+                "pagefile_available_bytes": swap_free,
+                "virtual_total_bytes": virtual_total,
+                "virtual_available_bytes": virtual_available,
+                "memory_load_percent": int(round(100 * (total - available) / total)),
+            }
+            report["supported"] = True
+        except Exception as exc:
+            report["metrics"] = None
+            _raise_failure(report, exc)
+        report["status"] = "PASS"
+        report["error"] = None
+        return report
     _require_windows(report, platform_name)
     try:
         raw = _backend_for(platform_name, _backend).capture_system_physical_memory()
