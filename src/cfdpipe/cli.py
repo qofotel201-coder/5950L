@@ -4222,7 +4222,9 @@ def _handle_pipeline_coarse_repair_audit(args: argparse.Namespace) -> int:
                 physical_schedule_homotopy_endpoint = (
                     make_physical_schedule_homotopy_endpoint(
                         baseline_binding_sha256=str(
-                            local_schedule_binding["binding_sha256"]
+                            direction_replay_approval[
+                                "local_schedule_binding_sha256"
+                            ]
                         ),
                         first_layer_height_m=float(
                             design["first_layer_height_m"]
@@ -4234,7 +4236,9 @@ def _handle_pipeline_coarse_repair_audit(args: argparse.Namespace) -> int:
                     validate_physical_schedule_homotopy_endpoint(
                         physical_schedule_homotopy_endpoint,
                         expected_binding_sha256=str(
-                            local_schedule_binding["binding_sha256"]
+                            direction_replay_approval[
+                                "local_schedule_binding_sha256"
+                            ]
                         ),
                         expected_first_layer_height_m=float(
                             design["first_layer_height_m"]

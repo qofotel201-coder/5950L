@@ -58,6 +58,7 @@ from .coarse_direction_replay import (
     CoarseDirectionReplayError,
     HOMOTOPY_DISCOVERY_SCHEMA,
     PHYSICAL_DISCOVERY_SCHEMA,
+    _same_portable_attestation,
     make_physical_schedule_homotopy_endpoint,
     validate_direction_replay_approval,
     validate_physical_schedule_homotopy_discovery,
@@ -724,25 +725,34 @@ def load_and_validate_physical_homotopy_audit_manifest(
             rel_tol=1.0e-12,
             abs_tol=0.0,
         )
-        or raw.get("projection_evidence")
-        != dict(expected_projection_evidence)
-        or raw.get("local_schedule_binding")
-        != dict(expected_local_schedule_binding)
-        or raw.get("direction_replay_approval")
-        != dict(expected_approval)
-        or raw.get("physical_schedule_homotopy_endpoint")
-        != dict(expected_endpoint)
+        or not _same_portable_attestation(
+            raw.get("projection_evidence"), expected_projection_evidence
+        )
+        or not _same_portable_attestation(
+            raw.get("local_schedule_binding"), expected_local_schedule_binding
+        )
+        or not _same_portable_attestation(
+            raw.get("direction_replay_approval"), expected_approval
+        )
+        or not _same_portable_attestation(
+            raw.get("physical_schedule_homotopy_endpoint"), expected_endpoint
+        )
         or not isinstance(strategy, Mapping)
         or strategy.get("audit_purpose") != PHYSICAL_HOMOTOPY_PURPOSE
         or strategy.get("fixed_direction_replay_only") is not True
         or strategy.get("fixed_direction_homotopy_only") is not True
         or strategy.get("combined_endpoint_only") is not True
-        or strategy.get("owner_free_direction_replay_approval")
-        != dict(expected_approval)
-        or strategy.get("schedule_feasibility_endpoint")
-        != dict(expected_endpoint)
-        or strategy.get("physical_schedule_homotopy_endpoint")
-        != dict(expected_endpoint)
+        or not _same_portable_attestation(
+            strategy.get("owner_free_direction_replay_approval"),
+            expected_approval,
+        )
+        or not _same_portable_attestation(
+            strategy.get("schedule_feasibility_endpoint"), expected_endpoint
+        )
+        or not _same_portable_attestation(
+            strategy.get("physical_schedule_homotopy_endpoint"),
+            expected_endpoint,
+        )
     ):
         raise CoarseRepairAuditError(
             "homotopy audit manifest lineage or safety scope is stale"
