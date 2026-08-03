@@ -118,6 +118,7 @@ def _portable_attestation(value: Any) -> Any:
             str(key): _portable_attestation(item)
             for key, item in value.items()
             if key not in _PATH_DERIVED_HASH_KEYS
+            and not str(key).endswith("_sha256")
         }
     if isinstance(value, list):
         return [_portable_attestation(item) for item in value]
