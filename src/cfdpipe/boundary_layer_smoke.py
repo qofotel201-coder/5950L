@@ -14569,6 +14569,9 @@ class RealProjectBoundaryLayerStrategy:
             current_curves = {int(tag) for _dim, tag in gmsh.model.getEntities(1)}
             for tag, records in curve_snapshots.items():
                 if tag in current_curves:
+                    existing = _element_records_from_gmsh(gmsh, 1, tag)
+                    if existing == records:
+                        continue
                     gmsh.model.mesh.clear([(1, tag)])
                 else:
                     gmsh.model.addDiscreteEntity(1, tag=tag)
