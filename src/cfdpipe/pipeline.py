@@ -3275,13 +3275,66 @@ def load_real_connection_inputs(
                 markers_file, repository_root=repository_root
             )
         except (MarkerConfigError, OSError, ValueError) as error:
-            issues.append(
-                {
-                    "code": "INVALID_OR_STALE_MARKERS_V2",
-                    "message": str(error),
-                    "path": str(markers_file),
-                }
-            )
+            try:
+                with markers_file.open("rb") as stream:
+                    runtime_document = tomllib.load(stream)
+                validate_marker_config_document(runtime_document)
+                provenance = runtime_document.get("provenance")
+                if not isinstance(provenance, Mapping):
+                    raise MarkerConfigError("markers.v2 provenance is missing")
+                historical_prefixes = (
+                    "runs/real_connection/geometry_repair/",
+                    "runs/real_connection/geometry_repair_validation/",
+                )
+                missing_historical: list[str] = []
+                for name, raw_record in provenance.items():
+                    if not isinstance(raw_record, Mapping):
+                        raise MarkerConfigError(f"provenance {name!r} is invalid")
+                    raw_path = raw_record.get("path")
+                    expected_sha = raw_record.get("sha256")
+                    if (
+                        not isinstance(raw_path, str)
+                        or not raw_path
+                        or Path(raw_path).is_absolute()
+                        or ".." in Path(raw_path).parts
+                        or not isinstance(expected_sha, str)
+                    ):
+                        raise MarkerConfigError(f"provenance {name!r} is unsafe")
+                    candidate = repository_root / raw_path
+                    if not candidate.exists():
+                        if raw_path.startswith(historical_prefixes):
+                            missing_historical.append(raw_path)
+                            continue
+                        raise MarkerConfigError(
+                            f"required runtime provenance is missing: {raw_path}"
+                        )
+                    resolved_candidate = candidate.resolve(strict=True)
+                    if (
+                        _is_reparse(candidate)
+                        or not resolved_candidate.is_file()
+                        or repository_root not in resolved_candidate.parents
+                        or _sha256(resolved_candidate) != expected_sha.casefold()
+                    ):
+                        raise MarkerConfigError(
+                            f"provenance {name!r} is not an ordinary hash match"
+                        )
+                if not missing_historical:
+                    raise error
+                marker_document = dict(runtime_document)
+                markers_record["validation_mode"] = (
+                    "RUNTIME_CONTRACT_WITH_HISTORICAL_PROVENANCE_DEFERRED"
+                )
+                markers_record["deferred_historical_provenance"] = sorted(
+                    missing_historical
+                )
+            except (MarkerConfigError, OSError, ValueError, tomllib.TOMLDecodeError):
+                issues.append(
+                    {
+                        "code": "INVALID_OR_STALE_MARKERS_V2",
+                        "message": str(error),
+                        "path": str(markers_file),
+                    }
+                )
     topology_smoke_document = (
         _load_toml_object(
             topology_smoke_file,

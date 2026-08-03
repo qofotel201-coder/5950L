@@ -593,6 +593,113 @@ class RealConnectionInputGateTests(unittest.TestCase):
             }.issubset(roles)
         )
 
+    def test_runtime_gate_defers_only_missing_historical_marker_provenance(self) -> None:
+        self._write_read_only_step()
+        _write_markers(self.markers)
+        document = json.loads(self.markers.read_text(encoding="utf-8"))
+        brep = (
+            self.root
+            / "geometry/derived/model1_shared_topology/model1_shared_topology.brep"
+        )
+        document["provenance"] = {
+            "project": {
+                "path": "config/project.toml",
+                "sha256": hashlib.sha256(self.project.read_bytes()).hexdigest(),
+            },
+            "source_step": {
+                "path": "geometry/raw/model1.step",
+                "sha256": hashlib.sha256(self.step.read_bytes()).hexdigest(),
+            },
+            "pipeline_brep": {
+                "path": "geometry/derived/model1_shared_topology/model1_shared_topology.brep",
+                "sha256": hashlib.sha256(brep.read_bytes()).hexdigest(),
+            },
+            "repair_manifest": {
+                "path": "runs/real_connection/geometry_repair/repair_manifest.json",
+                "sha256": "1" * 64,
+            },
+            "marker_rematch": {
+                "path": "runs/real_connection/geometry_repair/marker_rematch.json",
+                "sha256": "2" * 64,
+            },
+            "interface_persistence": {
+                "path": "runs/real_connection/geometry_repair_validation/interface_persistence.json",
+                "sha256": "3" * 64,
+            },
+            "pipeline_topology": {
+                "path": "runs/real_connection/geometry_repair/pipeline_brep_topology.json",
+                "sha256": "4" * 64,
+            },
+        }
+        payload = {key: value for key, value in document.items() if key != "integrity"}
+        document["integrity"]["payload_sha256"] = hashlib.sha256(
+            json.dumps(
+                payload,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+                allow_nan=False,
+            ).encode("utf-8")
+        ).hexdigest()
+        self.markers.write_text(json.dumps(document), encoding="utf-8")
+        topology_path = self.markers.with_name("topology_smoke.toml")
+        topology_document = {
+            "schema": "cfdpipe.topology_smoke.v1",
+            "status": "CONFIGURED",
+            "policy": {
+                "topology_smoke_only": True,
+                "production_mesh_eligible": False,
+                "runtime_tags_present": False,
+            },
+            "provenance": {
+                "markers_sha256": hashlib.sha256(self.markers.read_bytes()).hexdigest(),
+                "pipeline_brep_sha256": hashlib.sha256(brep.read_bytes()).hexdigest(),
+            },
+            "local_refinement": {
+                "surface_fingerprint_ids": [
+                    document["solver_markers"][1]["members"][0]["fingerprint_id"]
+                ],
+                "minimum_size_m": 0.012,
+                "distance_max_m": 0.08,
+                "sampling": 100,
+            },
+        }
+        project_document = pipeline_module.tomllib.loads(
+            self.project.read_text(encoding="utf-8")
+        )
+        with (
+            mock.patch(
+                "cfdpipe.pipeline.load_marker_config",
+                side_effect=pipeline_module.MarkerConfigError("historical evidence missing"),
+            ),
+            mock.patch(
+                "cfdpipe.pipeline.tomllib.load",
+                side_effect=[project_document, document, topology_document],
+            ),
+            mock.patch(
+                "cfdpipe.pipeline.validate_marker_config_document",
+                side_effect=lambda value: value,
+            ),
+        ):
+            inputs = pipeline_module.load_real_connection_inputs(
+                step_path=self.step,
+                project_path=self.project,
+                cases_path=self.cases,
+                markers_path=self.markers,
+                topology_smoke_path=topology_path,
+                case_id="M50_H21_A8_B0",
+                trusted_repository_root=self.root,
+            )
+
+        self.assertEqual(
+            inputs.input_records["markers"]["validation_mode"],
+            "RUNTIME_CONTRACT_WITH_HISTORICAL_PROVENANCE_DEFERRED",
+        )
+        self.assertEqual(
+            len(inputs.input_records["markers"]["deferred_historical_provenance"]),
+            4,
+        )
+
     def test_hash_bound_connection_only_pilot_approval_passes_gate(self) -> None:
         self._write_read_only_step()
         _write_markers(self.markers)

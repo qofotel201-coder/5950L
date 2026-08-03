@@ -1,5 +1,19 @@
 # PLAN
 
+## 本轮任务：AutoDL L4 私有输入门与 L5 真实项目小型连接复现
+
+状态：进行中；仅传输两个冻结哈希绑定的私有几何输入并执行严格私有输入门、无边界层 topology-smoke 网格、五步串行 Euler 和 pvbatch 连接验证。不运行边界层、Pilot修复、RANS或生产网格，不启用CUDA，不作物理解读。
+
+### 目标与验收标准
+
+- 仅从受控位置选取普通只读文件 `geometry/raw/model1.step` 与 `geometry/derived/model1_shared_topology/model1_shared_topology.brep`；拒绝symlink/junction/reparse point，大小与SHA-256必须分别严格匹配冻结合同 `d7d1cb…1a6b` 和 `13698e…e121`，不得修改合同接受新哈希。
+- 生成不含私有内容的本地交接清单，证明两个文件未被Git跟踪且被忽略；通过rsync/scp直接传入AutoDL固定相对路径，不经过GitHub，远端设为只读并重新验证类型、权限、大小和SHA-256。
+- 在AutoDL固定Git提交和干净跟踪工作区中，以全新证据目录运行 `verify_repository.py --require-private-inputs`；记录命令、cwd、Git SHA、UTC起止、stdout/stderr和返回码，严格门必须返回0且PASS。
+- 先以当前CLI `--help`确认真实项目命令，再使用冻结的STEP、project/cases/markers/topology-smoke配置、`M50_H21_A8_B0`、smoke、单进程、五步、300秒执行唯一目录L5；共享拓扑BREP必须由markers哈希绑定选择。
+- L5必须完成小型无边界层网格、五步串行Euler、当前run的VTU及pvbatch JSON/CSV；marker、共享接口、负体积、工件新鲜度与关键返回码全部通过，六段及overall均为PASS。
+- 打包并回传严格门、报告、manifest、命令日志、网格/marker摘要、版本及逐文件SHA-256；本机验证压缩包哈希并重新解析所有状态。
+- 只规划L6/Pilot所需最小历史证据，不上传整个runs或任何历史工件；PASS后状态仅更新为 `PRIVATE_INPUTS=TRANSFERRED_VERIFIED`、`REAL_PROJECT_L5=PASS`、`HISTORICAL_EVIDENCE=PLANNED_NOT_TRANSFERRED`，继续保持Pilot/RANS/生产CFD为HOLD及Linux非生产VERIFIED。
+
 ## 本轮任务：AutoDL 远程 CFD 工具链部署与 L2/L3 通用连接验收
 
 状态：已完成；AutoDL 工具链、L2 与 CAD-free L3 均为 PASS，私有输入未传输，未运行真实项目网格、RANS或生产CFD。Linux 平台仍为 `CANDIDATE_PENDING_REMOTE_VERIFICATION`，真实项目复现尚未开始。
