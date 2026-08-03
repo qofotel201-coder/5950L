@@ -12194,9 +12194,18 @@ def _apply_one_layer_orientation_cone_subdivision(
                     "physical-schedule first-frontier continuation is audit-only "
                     "and exclusive"
                 )
-            core_volume_records = _all_volume_records_for_entities(
-                gmsh, [int(value) for value in core_volume_tags]
+            all_volume_records = _all_volume_records_for_entities(
+                gmsh,
+                [
+                    *[int(value) for value in core_volume_tags],
+                    *sorted(int(value) for value in normalized_prism_fingerprints),
+                ],
             )
+            core_volume_records = [
+                record
+                for record in all_volume_records
+                if record["type"] != "Prism 6"
+            ]
             discovery = (
                 _run_physical_schedule_first_frontier_direction_continuation(
                     gmsh,
