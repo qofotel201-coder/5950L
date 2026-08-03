@@ -1157,7 +1157,7 @@ def _validate_repair_audit_strategy_config(
         raise CoarseRepairAuditError(
             "repair audit strategy config violates the exclusive audit-only mode matrix"
         )
-    contract_hash = contract.get("normalized_config_sha256")
+    contract_hash = validated_binding.get("coarse_contract_sha256")
     if (
         strategy_config.get("coarse_contract_sha256") != contract_hash
         or strategy_config.get("local_boundary_layer_schedule")
