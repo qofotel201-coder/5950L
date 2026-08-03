@@ -102,6 +102,8 @@ def _sha256_file(path: Path) -> str:
 _PATH_DERIVED_HASH_KEYS = {
     "baseline_binding_sha256",
     "binding_sha256",
+    "consensus_sha256",
+    "direction_endpoint_sha256",
     "endpoint_sha256",
     "evidence_sha256",
     "normalized_config_sha256",
