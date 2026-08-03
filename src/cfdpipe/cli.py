@@ -3385,15 +3385,29 @@ def _validate_coarse_repair_audit_pass_manifest(
                 ),
             }
             if direction_continuation:
+                runtime_counts = discovery.get("observed_counts", {})
+                runtime_prism_count = int(
+                    runtime_counts["prism_element_count"]
+                )
+                runtime_core_count = int(
+                    runtime_counts["core_element_count"]
+                )
+                if runtime_prism_count != int(
+                    source_quality["prism_element_count"]
+                ):
+                    raise ValueError(
+                        "continuation changed the frozen Prism6 inventory"
+                    )
                 physical_validator_arguments = {
                     "expected_endpoint": (
                         expected_schedule_direction_continuation_endpoint
                     ),
-                    "expected_projected_3d_elements": int(projected_count),
-                    "expected_prism_element_count": int(
-                        source_quality["prism_element_count"]
+                    "expected_projected_3d_elements": (
+                        runtime_prism_count + runtime_core_count
                     ),
-                    "expected_core_element_count": int(
+                    "expected_prism_element_count": runtime_prism_count,
+                    "expected_core_element_count": runtime_core_count,
+                    "expected_historical_core_element_count": int(
                         source_quality["core_element_count"]
                     ),
                 }
@@ -3434,7 +3448,12 @@ def _validate_coarse_repair_audit_pass_manifest(
             is not (manifest_status == "PASS")
             or not _is_lower_sha256(discovery.get("discovery_sha256"))
             or not isinstance(counts, Mapping)
-            or counts.get("projected_3d_element_count") != projected_count
+            or counts.get("projected_3d_element_count")
+            != (
+                runtime_prism_count + runtime_core_count
+                if direction_continuation
+                else projected_count
+            )
         ):
             raise ValueError(
                 "physical-schedule replay discovery is incomplete or stale"
