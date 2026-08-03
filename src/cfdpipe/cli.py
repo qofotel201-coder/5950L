@@ -4287,7 +4287,7 @@ def _handle_pipeline_coarse_repair_audit(args: argparse.Namespace) -> int:
                         ).casefold(),
                         output_root=resolved_root,
                         expected_contract_sha256=str(
-                            contract["normalized_config_sha256"]
+                            projection_evidence["coarse_contract_sha256"]
                         ),
                         expected_characteristic_length_m=characteristic,
                         expected_projection_evidence=projection_evidence,
