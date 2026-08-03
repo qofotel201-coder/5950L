@@ -1177,6 +1177,7 @@ def make_production_coarse_strategy_config(
         {
             "production_replay_after_audit": True,
             "production_volume_regions": copy.deepcopy(list(volume_regions)),
+            "production_target_element_count": int(contract["target_3d_elements"]),
             "max_3d_elements": cap,
         }
     )
