@@ -2566,7 +2566,7 @@ def _validate_coarse_repair_audit_pass_manifest(
             trusted_replay_approval = validate_direction_replay_approval(
                 expected_direction_replay_approval,
                 expected_coarse_contract_sha256=str(
-                    contract.get("normalized_config_sha256", "")
+                    projection_evidence.get("coarse_contract_sha256", "")
                 ),
                 expected_characteristic_length_m=(
                     expected_characteristic_length_m
