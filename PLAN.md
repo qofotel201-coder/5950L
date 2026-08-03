@@ -2,7 +2,38 @@
 
 ## 本轮任务：AutoDL 远程 CFD 工具链部署与 L2/L3 通用连接验收
 
-状态：进行中；只部署和验证 CAD-free 通用工具链，不传输私有输入，不运行真实项目网格、RANS或生产CFD。
+状态：已完成；AutoDL 工具链、L2 与 CAD-free L3 均为 PASS，私有输入未传输，未运行真实项目网格、RANS或生产CFD。Linux 平台仍为 `CANDIDATE_PENDING_REMOTE_VERIFICATION`，真实项目复现尚未开始。
+
+### 最终状态
+
+- `LOCAL_LINUX_L0_L1 = PASS`
+- `REMOTE_AUTODL_L0_L1 = PASS`
+- `REMOTE_CFD_TOOLCHAIN = PASS`
+- `LINUX_L2 = PASS`
+- `LINUX_L3 = PASS`
+- `PRIVATE_INPUTS = NOT_TRANSFERRED`
+- `REAL_PROJECT_REPRODUCTION = PENDING`
+- `PILOT_MESH_REPAIR = HOLD`
+- `RANS = HOLD`
+- `PRODUCTION_CFD = HOLD`
+
+### 实施与验证结果
+
+- AutoDL 用户空间部署 Gmsh 4.15.2 nox SDK（Python API 与 CLI 同版）、SU2 8.5.0 Linux MPI 构建、MPICH/HYDRA 4.0 启动器及 ParaView/pvbatch 6.2.0-RC1；`config/tools.json` 仅存在于远程且保持Git忽略，全部为原生Linux绝对路径，Windows `.exe` 数量为0。
+- 官方普通 Gmsh Linux 包因远端缺少 `libGLU.so.1` 被保存为失败诊断，改用同版本官方 nox SDK后 `gmsh.initialize()`、OCC矩形、二维网格及 `gmsh.finalize()` 均成功；未启动GUI。
+- L2环境报告为PASS：Python 3.13.14、Gmsh Python/CLI 4.15.2、SU2_CFD 8.5.0、MPI启动器和pvbatch 6.2.x均由实际命令验证；SU2_SOL已部署，本轮因SU2_CFD直接写出VTU而明确为 `FOUND_NOT_REQUIRED`。
+- L3六段 `python_to_gmsh`、`gmsh_to_su2_mesh`、`python_to_su2`、`su2_to_paraview_file`、`python_to_pvbatch`、`pvbatch_to_results` 及overall全部PASS。网格为994点、1866个三角形，含120条 `farfield` 边；串行SU2完成5步并输出history和有限VTU；pvbatch读取VTU并输出可解析JSON、CSV。
+- 同一网格另以MPI 2进程运行SU2，返回码0、完成5步、history及有限VTU均通过，点数和单元数与输入一致。输入、输出、命令、stdout/stderr、版本与关键工件SHA-256均进入远程证据。
+- 实机发现并最小修复两项跨平台问题：SU2二维预处理会输出有符号 `-nan` 的不可用正交统计，以及官方ParaView启动器由 `pvbatch` 转入同目录 `pvbatch-real`；均新增回归，不放宽求解/网格质量门。
+- 本阶段没有上传或读取客户STEP/BREP，没有运行真实项目网格、RANS或生产CFD，没有启用CUDA或GUI，没有修改marker、工况、CAD哈希、边界条件或网格质量阈值。
+
+### 下一阶段唯一入口
+
+私有输入经单独授权传输并按合同路径落盘后，第一条质量门命令为：
+
+```bash
+cd /root/autodl-tmp/5950L && /root/autodl-tmp/envs/cfdpipe/bin/python scripts/repro/verify_repository.py --require-private-inputs
+```
 
 ### 目标与验收标准
 
