@@ -26,6 +26,7 @@ from cfdpipe.rans_diagnostics import (
 from cfdpipe.rans_smoke_pipeline import (
     RANSSmokePipelineError,
     _validate_binary_restart,
+    _validate_regenerated_mesh_lineage,
     _validated_restart_source,
     _validate_rans_config,
 )
@@ -55,6 +56,73 @@ def _reference() -> SU2Reference:
 
 
 class RANSSmokeTests(unittest.TestCase):
+    def test_regenerated_mesh_lineage_requires_all_frozen_inputs(self) -> None:
+        hashes = {
+            name: hashlib.sha256(name.encode("ascii")).hexdigest()
+            for name in (
+                "project",
+                "cases",
+                "markers",
+                "topology",
+                "step",
+                "brep",
+                "smoke",
+                "trial",
+            )
+        }
+        input_records = {
+            "project": {"sha256": hashes["project"]},
+            "cases": {"sha256": hashes["cases"]},
+            "markers": {"sha256": hashes["markers"]},
+            "topology_smoke_config": {"sha256": hashes["topology"]},
+            "step": {"sha256": hashes["step"]},
+            "pipeline_geometry": {"sha256": hashes["brep"]},
+        }
+        source = {"sha256": hashes["brep"], "read_only": True}
+        manifest = {
+            "source_unchanged": True,
+            "source_before": source,
+            "source_after": dict(source),
+            "normalized_config": {
+                "provenance": {
+                    "project_sha256": hashes["project"],
+                    "cases_sha256": hashes["cases"],
+                    "markers_sha256": hashes["markers"],
+                    "topology_smoke_sha256": hashes["topology"],
+                    "pipeline_brep_sha256": hashes["brep"],
+                }
+            },
+            "run_evidence": {
+                "downstream_programs_called": False,
+                "configuration_files": {
+                    "smoke": {"sha256": hashes["smoke"]},
+                    "schedule": {"sha256": hashes["trial"]},
+                    "topology_smoke": {"sha256": hashes["topology"]},
+                },
+                "input_records": {
+                    name: {"sha256": value["sha256"]}
+                    for name, value in input_records.items()
+                },
+            },
+        }
+        provenance = {
+            "boundary_layer_smoke_sha256": hashes["smoke"],
+            "boundary_layer_trial_sha256": hashes["trial"],
+            "topology_smoke_sha256": hashes["topology"],
+        }
+
+        _validate_regenerated_mesh_lineage(
+            manifest, provenance=provenance, input_records=input_records
+        )
+        tampered = copy.deepcopy(manifest)
+        tampered["run_evidence"]["input_records"]["pipeline_geometry"][
+            "sha256"
+        ] = "0" * 64
+        with self.assertRaisesRegex(RANSSmokePipelineError, "input lineage"):
+            _validate_regenerated_mesh_lineage(
+                tampered, provenance=provenance, input_records=input_records
+            )
+
     @staticmethod
     def _write_restart(path: Path, *, point_count: int = 2) -> None:
         fields = (

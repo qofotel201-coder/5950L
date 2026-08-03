@@ -289,6 +289,7 @@ def _validate_mesh_manifest(
     *,
     manifest_path: Path,
     provenance: Mapping[str, Any],
+    input_records: Mapping[str, Mapping[str, Any]],
     expected_markers: set[str],
     maximum_elements: int,
 ) -> tuple[Path, dict[str, Any]]:
@@ -302,8 +303,6 @@ def _validate_mesh_manifest(
         or manifest.get("paraview_called") is not False
     ):
         raise RANSSmokePipelineError("boundary-layer mesh manifest is not a clean PASS")
-    if provenance.get("boundary_layer_mesh_manifest_sha256") != _sha256(manifest_path):
-        raise RANSSmokePipelineError("boundary-layer mesh manifest hash is stale")
     outputs = _require_mapping(manifest.get("outputs"), label="mesh outputs")
     mesh_record = _require_mapping(outputs.get("mesh.su2"), label="mesh.su2 output")
     raw_mesh = mesh_record.get("path")
@@ -311,11 +310,17 @@ def _validate_mesh_manifest(
         raise RANSSmokePipelineError("mesh manifest has no mesh.su2 path")
     mesh = Path(raw_mesh).expanduser().resolve(strict=True)
     mesh_sha = _sha256(mesh)
-    if (
-        mesh_record.get("sha256") != mesh_sha
-        or provenance.get("boundary_layer_mesh_sha256") != mesh_sha
-    ):
+    if mesh_record.get("sha256") != mesh_sha:
         raise RANSSmokePipelineError("boundary-layer mesh SHA256 is stale")
+    historical_pair_matches = (
+        provenance.get("boundary_layer_mesh_manifest_sha256")
+        == _sha256(manifest_path)
+        and provenance.get("boundary_layer_mesh_sha256") == mesh_sha
+    )
+    if not historical_pair_matches:
+        _validate_regenerated_mesh_lineage(
+            manifest, provenance=provenance, input_records=input_records
+        )
     validation = dict(
         _require_mapping(manifest.get("su2_validation"), label="SU2 mesh validation")
     )
@@ -350,6 +355,90 @@ def _validate_mesh_manifest(
     ):
         raise RANSSmokePipelineError("independent mixed-mesh parser differs from manifest")
     return mesh, validation
+
+
+def _validate_regenerated_mesh_lineage(
+    manifest: Mapping[str, Any],
+    *,
+    provenance: Mapping[str, Any],
+    input_records: Mapping[str, Mapping[str, Any]],
+) -> None:
+    """Bind a fresh smoke mesh to the same frozen configs and private geometry."""
+
+    run_evidence = _require_mapping(
+        manifest.get("run_evidence"), label="regenerated mesh run evidence"
+    )
+    configuration_files = _require_mapping(
+        run_evidence.get("configuration_files"),
+        label="regenerated mesh configuration files",
+    )
+    expected_configuration_hashes = {
+        "smoke": provenance.get("boundary_layer_smoke_sha256"),
+        "schedule": provenance.get("boundary_layer_trial_sha256"),
+        "topology_smoke": provenance.get("topology_smoke_sha256"),
+    }
+    if run_evidence.get("downstream_programs_called") is not False or any(
+        _require_mapping(configuration_files.get(name), label=f"{name} config").get(
+            "sha256"
+        )
+        != expected_hash
+        for name, expected_hash in expected_configuration_hashes.items()
+    ):
+        raise RANSSmokePipelineError(
+            "regenerated boundary-layer mesh config lineage is stale"
+        )
+
+    recorded_inputs = _require_mapping(
+        run_evidence.get("input_records"), label="regenerated mesh input records"
+    )
+    expected_input_hashes = {
+        "project": input_records["project"]["sha256"],
+        "cases": input_records["cases"]["sha256"],
+        "markers": input_records["markers"]["sha256"],
+        "topology_smoke_config": input_records["topology_smoke_config"]["sha256"],
+        "step": input_records["step"]["sha256"],
+        "pipeline_geometry": input_records["pipeline_geometry"]["sha256"],
+    }
+    if any(
+        _require_mapping(recorded_inputs.get(name), label=f"{name} input").get(
+            "sha256"
+        )
+        != expected_hash
+        for name, expected_hash in expected_input_hashes.items()
+    ):
+        raise RANSSmokePipelineError(
+            "regenerated boundary-layer mesh input lineage is stale"
+        )
+
+    normalized = _require_mapping(
+        manifest.get("normalized_config"), label="regenerated normalized config"
+    )
+    normalized_provenance = _require_mapping(
+        normalized.get("provenance"), label="regenerated normalized provenance"
+    )
+    expected_normalized_provenance = {
+        "project_sha256": expected_input_hashes["project"],
+        "cases_sha256": expected_input_hashes["cases"],
+        "markers_sha256": expected_input_hashes["markers"],
+        "topology_smoke_sha256": expected_input_hashes["topology_smoke_config"],
+        "pipeline_brep_sha256": expected_input_hashes["pipeline_geometry"],
+    }
+    source_before = _require_mapping(
+        manifest.get("source_before"), label="regenerated source before"
+    )
+    source_after = _require_mapping(
+        manifest.get("source_after"), label="regenerated source after"
+    )
+    if (
+        dict(normalized_provenance) != expected_normalized_provenance
+        or manifest.get("source_unchanged") is not True
+        or source_before.get("sha256") != expected_input_hashes["pipeline_geometry"]
+        or source_after != source_before
+        or source_before.get("read_only") is not True
+    ):
+        raise RANSSmokePipelineError(
+            "regenerated boundary-layer mesh private geometry lineage is stale"
+        )
 
 
 def _validate_provenance(
@@ -757,6 +846,7 @@ def run_rans_smoke_validation(
             mesh_manifest,
             manifest_path=mesh_manifest_file,
             provenance=provenance,
+            input_records=inputs.input_records,
             expected_markers=expected_markers,
             maximum_elements=max_elements,
         )
