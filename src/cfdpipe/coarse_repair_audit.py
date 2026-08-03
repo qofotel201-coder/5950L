@@ -989,13 +989,22 @@ def make_coarse_repair_audit_strategy_config(
                     "homotopy_manifest_sha256": manifest_sha256,
                     "homotopy_discovery": discovery,
                     "homotopy_endpoint_sha256": str(
-                        homotopy_endpoint["endpoint_sha256"]
+                        discovery.get("source_bindings", {}).get(
+                            "homotopy_endpoint_sha256",
+                            homotopy_endpoint["endpoint_sha256"],
+                        )
                     ),
                     "direction_replay_approval_sha256": str(
-                        validated_replay["approval_sha256"]
+                        discovery.get("source_bindings", {}).get(
+                            "direction_replay_approval_sha256",
+                            validated_replay["approval_sha256"],
+                        )
                     ),
                     "local_schedule_binding_sha256": str(
-                        local_schedule_binding.get("binding_sha256", "")
+                        discovery.get("source_bindings", {}).get(
+                            "local_schedule_binding_sha256",
+                            local_schedule_binding.get("binding_sha256", ""),
+                        )
                     ),
                     "minimum_prism_scaled_jacobian_for_pass": float(
                         quality["minimum_prism_scaled_jacobian"]

@@ -4328,15 +4328,30 @@ def _handle_pipeline_coarse_repair_audit(args: argparse.Namespace) -> int:
                         "discovery"
                     ],
                     "homotopy_endpoint_sha256": (
-                        physical_schedule_homotopy_endpoint[
-                            "endpoint_sha256"
-                        ]
+                        homotopy_audit_evidence["discovery"].get(
+                            "source_bindings", {}
+                        ).get(
+                            "homotopy_endpoint_sha256",
+                            physical_schedule_homotopy_endpoint[
+                                "endpoint_sha256"
+                            ],
+                        )
                     ),
                     "direction_replay_approval_sha256": (
-                        direction_replay_approval["approval_sha256"]
+                        homotopy_audit_evidence["discovery"].get(
+                            "source_bindings", {}
+                        ).get(
+                            "direction_replay_approval_sha256",
+                            direction_replay_approval["approval_sha256"],
+                        )
                     ),
                     "local_schedule_binding_sha256": (
-                        local_schedule_binding["binding_sha256"]
+                        homotopy_audit_evidence["discovery"].get(
+                            "source_bindings", {}
+                        ).get(
+                            "local_schedule_binding_sha256",
+                            local_schedule_binding["binding_sha256"],
+                        )
                     ),
                     "minimum_prism_scaled_jacobian_for_pass": float(
                         quality["minimum_prism_scaled_jacobian"]
