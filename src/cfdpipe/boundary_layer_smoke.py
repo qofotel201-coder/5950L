@@ -12300,6 +12300,30 @@ def _apply_one_layer_orientation_cone_subdivision(
                     ),
                 )
             )
+            verification_plan = {
+                "mode": str(repair["mode"]),
+                "prism_volume_tags": [int(value) for value in prism_volume_tags],
+                "core_volume_tags": [int(value) for value in core_volume_tags],
+                "lateral_surface_tags": [int(value) for value in lateral_surface_tags],
+                "chains": {int(root): list(chain) for root, chain in chains.items()},
+                "source_triangles": sorted(source_triangles),
+                "root_cumulative_heights_m": {
+                    int(root): list(values)
+                    for root, values in root_cumulative_heights.items()
+                },
+                "height_tolerance_m": tolerance,
+                "source_prism_count": len(source_prisms),
+                "source_nonprism_type_counts": dict(
+                    sorted(source_nonprism_type_counts.items())
+                ),
+                "source_lateral_quad_count": len(lateral_records),
+                "source_vertical_line_count": len(vertical_line_records),
+                "max_3d_elements": int(normalized_config["max_3d_elements"]),
+            }
+            if discovery.get("status") == "PASS":
+                verification_plan["connectivity_sha256"] = _mesh_connectivity_sha256(gmsh)
+                _verify_one_layer_orientation_cone_subdivision(gmsh, verification_plan)
+                return verification_plan, discovery
             return {}, discovery
         if raw_homotopy_endpoint is not None:
             if (
