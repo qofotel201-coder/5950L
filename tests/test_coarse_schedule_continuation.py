@@ -1417,6 +1417,8 @@ class FrontierDirectionDiscoveryCompatibilityTests(unittest.TestCase):
                     "outside_closure_changed_node_count": 0,
                     "base_root_moved_count": 0,
                     "connectivity_sha256": collar_connectivity_sha256,
+                    "selection_eligible": True,
+                    "unsafe_reasons": [],
                     "status": "FAIL",
                 }
             )

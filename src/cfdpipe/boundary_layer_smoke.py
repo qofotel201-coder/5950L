@@ -10294,6 +10294,17 @@ def _run_frontier_schedule_collar(
             and quality["nonfinite_count"] == 0
             and preservation_safe
         )
+        unsafe_reasons = sorted(
+            reason
+            for reason, passed in {
+                "lineage_contained": new_lineage_count == 0,
+                "core_quality": quality["core_tetra_below_gamma_count"] == 0,
+                "positive_elements": quality["nonpositive_element_count"] == 0,
+                "finite_quality": quality["nonfinite_count"] == 0,
+                "coordinate_preservation": preservation_safe,
+            }.items()
+            if not passed
+        )
         if not selection_eligible:
             restored = apply_state(normalized_target, selected_directions)
             if (
@@ -10306,15 +10317,11 @@ def _run_frontier_schedule_collar(
                 raise BoundaryLayerSmokeError(
                     "frontier collar unsafe candidate S0 restore differs"
                 )
-            raise BoundaryLayerSmokeError(
-                "frontier collar candidate created unsafe lineage, quality, "
-                "or coordinate drift"
-            )
         status = (
             "PASS"
             if quality["status"] == "PASS"
             and selection_eligible
-            else "FAIL"
+            else ("FAIL" if selection_eligible else "UNSAFE")
         )
         affected_element_ids = sorted(
             [
@@ -10416,6 +10423,8 @@ def _run_frontier_schedule_collar(
             ),
             "base_root_moved_count": candidate_base_root_moved_count,
             "connectivity_sha256": topology["connectivity_sha256"],
+            "selection_eligible": selection_eligible,
+            "unsafe_reasons": unsafe_reasons,
             "status": status,
         }
         candidate_records.append(candidate_record)
@@ -10429,7 +10438,11 @@ def _run_frontier_schedule_collar(
         for record in candidate_records
         if record["status"] == "PASS"
     ]
-    safe_candidates = list(candidate_records)
+    safe_candidates = [
+        record
+        for record in candidate_records
+        if record["status"] != "UNSAFE"
+    ]
     if not safe_candidates:
         raise BoundaryLayerSmokeError(
             "frontier collar has no lineage- and preservation-safe candidate"

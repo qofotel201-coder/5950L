@@ -3752,6 +3752,8 @@ def _validate_collar_refinement_selection(
         "outside_closure_changed_node_count",
         "base_root_moved_count",
         "connectivity_sha256",
+        "selection_eligible",
+        "unsafe_reasons",
         "status",
     }
     normalized_candidates: list[dict[str, Any]] = []
@@ -4018,6 +4020,44 @@ def _validate_collar_refinement_selection(
             [item["prism_element_sha256"] for item in affected_prism_records]
             + [item["core_element_sha256"] for item in affected_core_records]
         )
+        new_bad_lineage_count = _nonnegative_int(
+            record["new_bad_lineage_count"],
+            "continuation collar new bad lineage count",
+        )
+        inner_prefix_changed = _nonnegative_int(
+            record["inner_prefix_changed_node_count"],
+            "continuation collar candidate inner-prefix changed count",
+        )
+        outside_closure_changed = _nonnegative_int(
+            record["outside_closure_changed_node_count"],
+            "continuation collar candidate outside-closure changed count",
+        )
+        base_root_moved = _nonnegative_int(
+            record["base_root_moved_count"],
+            "continuation collar candidate base-root moved count",
+        )
+        safety_checks = {
+            "lineage_contained": (
+                candidate_bad_ids <= residual_bad_ids
+                and new_bad_lineage_count == 0
+                and record.get("lineage_contained") is True
+            ),
+            "core_quality": quality["core_tetra_below_gamma_count"] == 0,
+            "positive_elements": quality["nonpositive_element_count"] == 0,
+            "finite_quality": quality["nonfinite_count"] == 0,
+            "coordinate_preservation": (
+                inner_prefix_changed == 0
+                and outside_closure_changed == 0
+                and base_root_moved == 0
+            ),
+        }
+        selection_eligible = all(safety_checks.values())
+        unsafe_reasons = sorted(
+            name for name, passed in safety_checks.items() if not passed
+        )
+        expected_candidate_status = (
+            quality["status"] if selection_eligible else "UNSAFE"
+        )
         if (
             record.get("candidate_index_1_based") != index
             or record.get("ring_width") != width
@@ -4073,7 +4113,6 @@ def _validate_collar_refinement_selection(
             != configured_hashes["low_quality_records_sha256"]
             or low_quality_aggregate.get("records_sha256")
             != low_quality_records_sha256
-            or not candidate_bad_ids <= residual_bad_ids
             or any(current < previous for current, previous in zip(closure, previous_closure))
             or record.get("quality_evaluation_index")
             != pattern_quality_evaluation_count + index
@@ -4102,29 +4141,11 @@ def _validate_collar_refinement_selection(
             or configured_hashes["exit_direction_field_sha256"]
             != entry_hashes["entry_direction_field_sha256"]
             or objective[-1].hex() != (0.0).hex()
-            or quality["core_tetra_below_gamma_count"] != 0
-            or quality["nonpositive_element_count"] != 0
-            or quality["nonfinite_count"] != 0
-            or _nonnegative_int(
-                record["new_bad_lineage_count"],
-                "continuation collar new bad lineage count",
-            )
-            != 0
-            or record.get("lineage_contained") is not True
-            or any(
-                _nonnegative_int(
-                    record[field], f"continuation collar candidate {field}"
-                )
-                != 0
-                for field in (
-                    "inner_prefix_changed_node_count",
-                    "outside_closure_changed_node_count",
-                    "base_root_moved_count",
-                )
-            )
             or configured_hashes["connectivity_sha256"]
             != preservation_hashes["entry_connectivity_sha256"]
-            or record.get("status") != quality["status"]
+            or record.get("selection_eligible") is not selection_eligible
+            or record.get("unsafe_reasons") != unsafe_reasons
+            or record.get("status") != expected_candidate_status
         ):
             raise CoarseScheduleContinuationError(
                 "one continuation collar candidate violates its closure or S0"
@@ -4141,7 +4162,20 @@ def _validate_collar_refinement_selection(
             }
         )
 
-    passing = [item for item in normalized_candidates if item["quality"]["status"] == "PASS"]
+    safe_candidates = [
+        item
+        for item in normalized_candidates
+        if item["record"]["selection_eligible"] is True
+    ]
+    if not safe_candidates:
+        raise CoarseScheduleContinuationError(
+            "continuation collar has no safe selectable candidate"
+        )
+    passing = [
+        item
+        for item in safe_candidates
+        if item["quality"]["status"] == "PASS"
+    ]
     if passing:
         expected_basis = (
             "passing_candidate_minimum_affected_closure_then_coordinate_change"
@@ -4163,7 +4197,7 @@ def _validate_collar_refinement_selection(
             "count_first_quality_then_minimum_affected_closure_then_coordinate_change"
         )
         ranked = min(
-            normalized_candidates,
+            safe_candidates,
             key=lambda item: (
                 *item["objective"],
                 *item["closure"],
