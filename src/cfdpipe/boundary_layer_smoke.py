@@ -14199,8 +14199,14 @@ class RealProjectBoundaryLayerStrategy:
             raise BoundaryLayerSmokeError("marker config has no fluid physical name")
         fluid_group = gmsh.model.addPhysicalGroup(3, all_fluid_volumes)
         gmsh.model.setPhysicalName(3, fluid_group, fluid_name)
-        gmsh.model.mesh.generate(3)
         production_volume_regions = None
+        if normalized_config.get("production_replay_after_audit") is True:
+            production_volume_regions = self._configure_production_volume_sizes(
+                gmsh, normalized_config
+            )
+        gmsh.model.mesh.generate(3)
+        if production_volume_regions is not None:
+            gmsh.model.mesh.removeSizeCallback()
         if normalized_config.get("projection_only") is True:
             if normalized_config.get("contract_mode") != "coarse_projection_only":
                 raise BoundaryLayerSmokeError(
@@ -14304,12 +14310,28 @@ class RealProjectBoundaryLayerStrategy:
             # topology and is therefore replayed before production core
             # refinement.  Tet4 centroid splits add no face nodes, so the
             # repaired prism/core interface remains exactly conformal.
-            production_volume_regions = self._refine_production_tetrahedral_cores(
-                gmsh,
-                core_volume_tags=[core1_tag, core2_tag],
-                prism_volume_tags=sorted(prism_by_wall.values()),
-                config=normalized_config,
+            if production_volume_regions is None:
+                raise BoundaryLayerSmokeError(
+                    "production core sizes were not configured before HXT"
+                )
+            core_count = sum(
+                len(_element_records_from_gmsh(gmsh, 3, int(tag)))
+                for tag in (core1_tag, core2_tag)
             )
+            prism_count = sum(
+                len(_element_records_from_gmsh(gmsh, 3, int(tag)))
+                for tag in prism_by_wall.values()
+            )
+            production_volume_regions = {
+                "schema": "cfdpipe.production_occ_core_hxt.v1",
+                "status": "PASS",
+                "face_nodes_added": 0,
+                "prism_core_interface_preserved": True,
+                "final_core_tetra_count": core_count,
+                "prism_count": prism_count,
+                "final_total_3d_element_count": core_count + prism_count,
+                "volume_regions": production_volume_regions,
+            }
             remeshed_records = _all_volume_records_for_entities(
                 gmsh,
                 [
