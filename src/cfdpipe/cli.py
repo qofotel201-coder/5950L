@@ -3061,7 +3061,9 @@ def _validate_coarse_repair_audit_pass_manifest(
             expected_path=str(projection_evidence.get("path", "")),
             expected_sha256=str(projection_evidence.get("sha256", "")),
             expected_config_sha256=expected_config_sha256,
-            expected_coarse_contract_sha256=contract_sha256,
+            expected_coarse_contract_sha256=str(
+                projection_evidence.get("coarse_contract_sha256", "")
+            ),
             expected_characteristic_length_m=expected_characteristic_length_m,
             expected_projected_3d_elements=projected_count,
         )
