@@ -14,7 +14,6 @@ from collections import Counter, defaultdict
 import copy
 from datetime import datetime, timezone
 import hashlib
-import heapq
 import importlib
 import json
 import math
@@ -13472,7 +13471,15 @@ class RealProjectBoundaryLayerStrategy:
         prism_volume_tags: Sequence[int],
         config: Mapping[str, Any],
     ) -> dict[str, Any]:
-        """Reach the production count with face-preserving Tet4 centroid splits."""
+        """Refill each frozen triangular core shell with HXT tetrahedra.
+
+        The accepted Pilot evidence binds every prism and every triangle on the
+        prism/core interface.  Recursive centroid splits preserve those faces,
+        but progressively flatten the outer children and therefore cannot meet
+        the frozen core-gamma gate at production counts.  A temporary discrete
+        Gmsh model lets HXT fill the *interior* of the exact frozen triangle
+        shell: no boundary node or triangle is regenerated.
+        """
 
         region_evidence = RealProjectBoundaryLayerStrategy._configure_production_volume_sizes(
             gmsh, config
@@ -13481,185 +13488,114 @@ class RealProjectBoundaryLayerStrategy:
             raise BoundaryLayerSmokeError(
                 "production tetrahedral refinement requires volume regions"
             )
-        # The callback is evidence-only for this explicit mesh transformation.
-        gmsh.model.mesh.removeSizeCallback()
-        regions = region_evidence["regions"]
-        raw_target = config.get("production_target_element_count")
-        target = _positive_int(raw_target, "production target element count")
-        maximum = _positive_int(config.get("max_3d_elements"), "maximum 3D elements")
         coordinates = _nodes_from_gmsh(gmsh)
-        tetrahedra: list[tuple[int, tuple[int, int, int, int]]] = []
-        interior_nodes: dict[int, dict[int, tuple[float, float, float]]] = {}
-        for core_tag in core_volume_tags:
-            core = int(core_tag)
+        main_model = str(gmsh.model.getCurrent())
+        if not main_model:
+            raise BoundaryLayerSmokeError("production core remesh has no current model")
+        initial_core_count = 0
+        shells: dict[int, list[tuple[int, int, int]]] = {}
+        shell_nodes: dict[int, set[int]] = {}
+        for raw_core in core_volume_tags:
+            core = int(raw_core)
             records = _element_records_from_gmsh(gmsh, 3, core)
             if not records or any(record["type"] != "Tetrahedron 4" for record in records):
                 raise BoundaryLayerSmokeError(
-                    "production core refinement requires all-Tet4 core entities"
+                    "production core remesh requires all-Tet4 core entities"
                 )
-            tetrahedra.extend(
-                (core, tuple(int(node) for node in record["nodes"]))
-                for record in records
+            initial_core_count += len(records)
+            triangles: list[tuple[int, int, int]] = []
+            boundary = gmsh.model.getBoundary(
+                [(3, core)], combined=False, oriented=True, recursive=False
             )
-            node_tags, node_coords, _ = gmsh.model.mesh.getNodes(3, core)
-            interior_nodes[core] = {
-                int(node_tags[index]): (
-                    float(node_coords[3 * index]),
-                    float(node_coords[3 * index + 1]),
-                    float(node_coords[3 * index + 2]),
-                )
-                for index in range(len(node_tags))
-            }
+            if not boundary or any(int(dim) != 2 for dim, _tag in boundary):
+                raise BoundaryLayerSmokeError("production core shell is incomplete")
+            for _dimension, signed_tag in boundary:
+                surface_tag = abs(int(signed_tag))
+                reverse = int(signed_tag) < 0
+                surface_records = _element_records_from_gmsh(gmsh, 2, surface_tag)
+                if not surface_records or any(
+                    record["type"] != "Triangle 3" for record in surface_records
+                ):
+                    raise BoundaryLayerSmokeError(
+                        "production core shell requires all-Triangle3 surfaces"
+                    )
+                for record in surface_records:
+                    nodes = tuple(int(value) for value in record["nodes"])
+                    triangles.append(
+                        (nodes[0], nodes[2], nodes[1]) if reverse else nodes
+                    )
+            if len(triangles) != len(set(tuple(sorted(face)) for face in triangles)):
+                raise BoundaryLayerSmokeError("production core shell has duplicate faces")
+            shells[core] = triangles
+            shell_nodes[core] = {node for face in triangles for node in face}
         prism_count = sum(
             len(_element_records_from_gmsh(gmsh, 3, int(tag)))
             for tag in prism_volume_tags
         )
-        initial_core_count = len(tetrahedra)
-        if prism_count + initial_core_count >= target:
-            raise BoundaryLayerSmokeError(
-                "production target does not require tetrahedral refinement"
-            )
-        # Each centroid split replaces one Tet4 by four; select the nearest
-        # reachable count at or above the configured target.
-        split_count = math.ceil((target - prism_count - initial_core_count) / 3)
-        final_total = prism_count + initial_core_count + 3 * split_count
-        if final_total > maximum:
-            raise BoundaryLayerSmokeError(
-                "production tetrahedral refinement exceeds the element cap"
-            )
-        next_node = int(gmsh.model.mesh.getMaxNodeTag()) + 1
-        generated_nodes: dict[int, dict[int, tuple[float, float, float]]] = {
-            int(tag): {} for tag in core_volume_tags
-        }
-
-        def desired_size(point: tuple[float, float, float]) -> float:
-            selected = float(config["characteristic_length_m"])
-            x, y, z = point
-            for region in regions:
-                xmin, ymin, zmin, xmax, ymax, zmax = region["bounds_m"]
-                offsets = (
-                    max(xmin - x, 0.0, x - xmax),
-                    max(ymin - y, 0.0, y - ymax),
-                    max(zmin - z, 0.0, z - zmax),
+        generated: dict[int, dict[str, Any]] = {}
+        for core in sorted(shells):
+            temporary_model = f"production_core_hxt_{core}"
+            gmsh.model.add(temporary_model)
+            try:
+                surface = int(gmsh.model.addDiscreteEntity(2))
+                boundary_nodes = sorted(shell_nodes[core])
+                gmsh.model.mesh.addNodes(
+                    2,
+                    surface,
+                    boundary_nodes,
+                    [value for node in boundary_nodes for value in coordinates[node]],
                 )
-                distance = math.sqrt(sum(value * value for value in offsets))
-                width = float(region["transition_width_m"])
-                if distance <= width:
-                    fraction = min(1.0, distance / width)
-                    local = float(region["size_m"]) + fraction * (
-                        float(config["characteristic_length_m"])
-                        - float(region["size_m"])
-                    )
-                    selected = min(selected, local)
-            return selected
-
-        def priority(item: tuple[int, tuple[int, int, int, int]]) -> float:
-            _core, nodes = item
-            points = [coordinates[node] for node in nodes]
-            centroid = tuple(sum(point[axis] for point in points) / 4.0 for axis in range(3))
-            maximum_edge = max(
-                math.dist(points[left], points[right])
-                for left in range(4)
-                for right in range(left + 1, 4)
-            )
-            return maximum_edge / desired_size(centroid)
-
-        def signed_six_volume(nodes: tuple[int, int, int, int]) -> float:
-            a, b, c, d = (coordinates[node] for node in nodes)
-            ab = _vector_subtract(b, a)
-            ac = _vector_subtract(c, a)
-            ad = _vector_subtract(d, a)
-            return _vector_dot(ab, _vector_cross(ac, ad))
-
-        def preserve_orientation(
-            child: tuple[int, int, int, int], parent_sign: float
-        ) -> tuple[int, int, int, int]:
-            child_sign = signed_six_volume(child)
-            if child_sign == 0.0 or parent_sign == 0.0:
-                raise BoundaryLayerSmokeError(
-                    "production centroid refinement encountered a zero-volume Tet4"
+                triangle_type = int(gmsh.model.mesh.getElementType("triangle", 1))
+                faces = shells[core]
+                gmsh.model.mesh.addElementsByType(
+                    surface,
+                    triangle_type,
+                    list(range(1, len(faces) + 1)),
+                    [node for face in faces for node in face],
                 )
-            if child_sign * parent_sign < 0.0:
-                return (child[1], child[0], child[2], child[3])
-            return child
-
-        passes: list[dict[str, Any]] = []
-        remaining = split_count
-        while remaining:
-            selected_count = min(remaining, len(tetrahedra))
-            if selected_count == len(tetrahedra):
-                selected_indices = set(range(len(tetrahedra)))
-            else:
-                selected_indices = {
-                    index
-                    for _score, index in heapq.nlargest(
-                        selected_count,
-                        ((priority(item), index) for index, item in enumerate(tetrahedra)),
-                    )
+                volume = int(gmsh.model.addDiscreteEntity(3, boundary=[surface]))
+                gmsh.option.setNumber("Mesh.Algorithm3D", 10)
+                RealProjectBoundaryLayerStrategy._configure_production_volume_sizes(
+                    gmsh, config
+                )
+                gmsh.model.mesh.generate(3)
+                gmsh.model.mesh.removeSizeCallback()
+                records = _element_records_from_gmsh(gmsh, 3, volume)
+                if not records or any(record["type"] != "Tetrahedron 4" for record in records):
+                    raise BoundaryLayerSmokeError("HXT core output is not all-Tet4")
+                temp_coordinates = _nodes_from_gmsh(gmsh)
+                generated[core] = {
+                    "records": [tuple(int(node) for node in record["nodes"]) for record in records],
+                    "coordinates": temp_coordinates,
+                    "boundary_nodes": set(boundary_nodes),
                 }
-            rebuilt: list[tuple[int, tuple[int, int, int, int]]] = []
-            for index, (core, nodes) in enumerate(tetrahedra):
-                if index not in selected_indices:
-                    rebuilt.append((core, nodes))
-                    continue
-                points = [coordinates[node] for node in nodes]
-                centroid = tuple(
-                    sum(point[axis] for point in points) / 4.0 for axis in range(3)
-                )
-                centroid_tag = next_node
-                next_node += 1
-                coordinates[centroid_tag] = centroid
-                generated_nodes[core][centroid_tag] = centroid
-                n0, n1, n2, n3 = nodes
-                parent_sign = signed_six_volume(nodes)
-                children = (
-                    (centroid_tag, n1, n2, n3),
-                    (n0, centroid_tag, n2, n3),
-                    (n0, n1, centroid_tag, n3),
-                    (n0, n1, n2, centroid_tag),
-                )
-                rebuilt.extend(
-                    (core, preserve_orientation(child, parent_sign))
-                    for child in children
-                )
-            before = len(tetrahedra)
-            tetrahedra = rebuilt
-            remaining -= selected_count
-            passes.append(
-                {
-                    "selected_tetrahedra": selected_count,
-                    "before_count": before,
-                    "after_count": len(tetrahedra),
-                }
-            )
+            finally:
+                gmsh.model.remove()
+                gmsh.model.setCurrent(main_model)
 
         gmsh.model.mesh.clear([(3, int(tag)) for tag in core_volume_tags])
-        for core_tag in core_volume_tags:
-            core = int(core_tag)
-            nodes_to_add = {**interior_nodes[core], **generated_nodes[core]}
-            ordered_nodes = sorted(nodes_to_add)
-            if ordered_nodes:
+        next_node = int(gmsh.model.mesh.getMaxNodeTag()) + 1
+        next_element = int(gmsh.model.mesh.getMaxElementTag()) + 1
+        tetra_element_type = int(gmsh.model.mesh.getElementType("tetrahedron", 1))
+        final_core_count = 0
+        core_audits: list[dict[str, Any]] = []
+        for core in sorted(generated):
+            data = generated[core]
+            boundary_nodes = data["boundary_nodes"]
+            temp_coordinates = data["coordinates"]
+            interior = sorted(set(temp_coordinates) - boundary_nodes)
+            mapping = {node: node for node in boundary_nodes}
+            for node in interior:
+                mapping[node] = next_node
+                next_node += 1
+            if interior:
                 gmsh.model.mesh.addNodes(
                     3,
                     core,
-                    ordered_nodes,
-                    [
-                        coordinate
-                        for node in ordered_nodes
-                        for coordinate in nodes_to_add[node]
-                    ],
+                    [mapping[node] for node in interior],
+                    [value for node in interior for value in temp_coordinates[node]],
                 )
-        next_element = int(gmsh.model.mesh.getMaxElementTag()) + 1
-        tetra_element_type = int(
-            gmsh.model.mesh.getElementType("tetrahedron", 1)
-        )
-        by_core: dict[int, list[tuple[int, int, int, int]]] = {
-            int(tag): [] for tag in core_volume_tags
-        }
-        for core, nodes in tetrahedra:
-            by_core[core].append(nodes)
-        for core in sorted(by_core):
-            records = by_core[core]
+            records = [tuple(mapping[node] for node in tet) for tet in data["records"]]
             tags = list(range(next_element, next_element + len(records)))
             next_element += len(records)
             gmsh.model.mesh.addElementsByType(
@@ -13668,17 +13604,30 @@ class RealProjectBoundaryLayerStrategy:
                 tags,
                 [node for record in records for node in record],
             )
+            final_core_count += len(records)
+            core_audits.append(
+                {
+                    "core_volume_tag_audit": core,
+                    "frozen_boundary_triangle_count": len(shells[core]),
+                    "frozen_boundary_node_count": len(boundary_nodes),
+                    "generated_interior_node_count": len(interior),
+                    "generated_tetrahedron_count": len(records),
+                }
+            )
+        final_total = prism_count + final_core_count
+        maximum = _positive_int(config.get("max_3d_elements"), "maximum 3D elements")
+        if final_total > maximum:
+            raise BoundaryLayerSmokeError("production HXT core exceeds the element cap")
         return {
-            "schema": "cfdpipe.production_tet_centroid_refinement.v1",
+            "schema": "cfdpipe.production_discrete_core_hxt.v1",
             "status": "PASS",
             "face_nodes_added": 0,
             "prism_core_interface_preserved": True,
             "initial_core_tetra_count": initial_core_count,
-            "final_core_tetra_count": len(tetrahedra),
+            "final_core_tetra_count": final_core_count,
             "prism_count": prism_count,
             "final_total_3d_element_count": final_total,
-            "split_count": split_count,
-            "passes": passes,
+            "cores": core_audits,
             "volume_regions": region_evidence,
         }
 
