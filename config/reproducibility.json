@@ -5,6 +5,24 @@
     "operating_system": "Windows",
     "architecture": "x86_64"
   },
+  "platforms": {
+    "windows_x86_64": {
+      "operating_system": "Windows",
+      "architecture": "x86_64",
+      "status": "VERIFIED_ON_REFERENCE_WORKSTATION"
+    },
+    "linux_ubuntu_22_04_x86_64": {
+      "operating_system": "Ubuntu 22.04",
+      "architecture": "x86_64",
+      "status": "CANDIDATE_PENDING_REMOTE_VERIFICATION",
+      "tiers_runnable": ["L0", "L1"],
+      "tiers_pending_remote_verification": ["L2", "L3"],
+      "production_mesh_verified": false,
+      "mpi_verified": false,
+      "gpu_verified": false,
+      "production_cfd_verified": false
+    }
+  },
   "verified_toolchain": {
     "python": {
       "version": "3.13.14"

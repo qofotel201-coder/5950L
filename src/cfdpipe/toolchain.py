@@ -329,6 +329,15 @@ class Toolchain:
                 "shutil.which returned a silent Windows executable from a "
                 f"Windows system directory: {path}."
             )
+        if name == "pvbatch" and path.stem.lower() != "pvbatch":
+            raise ToolResolutionError(
+                "pvbatch must resolve to pvbatch/pvbatch.exe; ParaView GUI or "
+                f"other executables are forbidden: {path}"
+            )
+        if os.name != "nt" and path.name.lower().endswith(".exe"):
+            raise ToolResolutionError(
+                f"Windows .exe executable is disallowed on POSIX: {path}."
+            )
         if not path.is_file():
             raise ToolResolutionError(
                 f"executable path does not exist or is not a file: {path}"
@@ -337,11 +346,6 @@ class Toolchain:
             raise ToolResolutionError(f"executable path is not executable: {path}")
         if not path.is_absolute():  # Defensive invariant for mocked path objects.
             raise ToolResolutionError(f"resolved path is not absolute: {path}")
-        if name == "pvbatch" and path.stem.lower() != "pvbatch":
-            raise ToolResolutionError(
-                "pvbatch must resolve to pvbatch/pvbatch.exe; ParaView GUI or "
-                f"other executables are forbidden: {path}"
-            )
         return path
 
 

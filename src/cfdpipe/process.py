@@ -38,6 +38,7 @@ _TERMINATION_GRACE_SECONDS = 0.5
 _READER_JOIN_SECONDS = 1.0
 _READER_CLOSE_JOIN_SECONDS = 0.25
 _RESOURCE_ABORT_CHECK_INTERVAL_SECONDS = 0.5
+_CTRL_BREAK_EVENT = getattr(signal, "CTRL_BREAK_EVENT", 1)
 
 
 def _utc_now() -> str:
@@ -795,7 +796,7 @@ class CommandRunner:
             if process.poll() is None:
                 graceful_attempted = True
                 try:
-                    process.send_signal(signal.CTRL_BREAK_EVENT)
+                    process.send_signal(_CTRL_BREAK_EVENT)
                 except (OSError, ValueError):
                     # Some non-console Windows hosts cannot deliver console
                     # control events.  The hard-kill fallback below remains

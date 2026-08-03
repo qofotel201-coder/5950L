@@ -1,6 +1,6 @@
 # cfdpipe
 
-`cfdpipe` 是一个 Windows 优先、可审计、失败即停的 CFD 自动化仓库。普通 Python 是唯一总控层：Gmsh Python API 负责几何与网格，`SU2_CFD` 由安全子进程调用，ParaView 脚本只由 `pvbatch` 无界面执行。
+`cfdpipe` 是一个可审计、失败即停的 CFD 自动化仓库。Windows x86-64 仍是已验证参考工作站；Ubuntu 22.04 x86-64 当前仅为 `CANDIDATE_PENDING_REMOTE_VERIFICATION`。普通 Python 是唯一总控层：Gmsh Python API 负责几何与网格，`SU2_CFD` 由安全子进程调用，ParaView 脚本只由 `pvbatch` 无界面执行。
 
 当前仓库已经真实打通两条小型链路：
 
@@ -76,6 +76,18 @@ $env:PYTHONPATH = (Resolve-Path src).Path
 ```
 
 预期最终文件为 `runs/connection/connection_report.json`，且六段连接状态和 `overall` 均为 `PASS`。该命令只运行二维五步 Euler 连接算例，不代表正式 CFD。
+
+## Linux / AutoDL 候选入口
+
+Linux 本地只可先执行 L0/L1；这不需要 CAD，也不会启动 Gmsh、SU2、MPI 或 pvbatch：
+
+```bash
+scripts/repro/bootstrap_linux.sh --dry-run
+scripts/repro/check_linux_environment.sh runs/reproducibility/linux_environment.json
+scripts/repro/run_linux_l0_l1.sh --output runs/reproducibility/linux_l0_l1_<UTC_TAG>
+```
+
+`scripts/cfdpipe.sh` 使用已激活 Python，或由 `CFD_PYTHON` 显式覆盖。AutoDL 的网络加速仅可用于 GitHub clone/fetch，操作结束后必须关闭代理；项目和大型工件放在 `/root/autodl-tmp`。STEP/BREP 只能经独立受控渠道传输，不得放入 Git。L2/L3 需要另行部署并在实机验证外部工具；当前不得直接进入生产网格或正式 CFD。
 
 ## 私有输入与真实项目复验
 

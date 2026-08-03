@@ -1,5 +1,110 @@
 # PLAN
 
+## 本轮任务：发布 Linux 候选并完成 AutoDL L0/L1 实机验证
+
+状态：本地质量门 PASS，等待候选提交、推送与 AutoDL 固定提交 L0/L1 实机验证；未启动外部 CFD 工具，未传输私有输入。
+
+### 目标与验收标准
+
+- 保留当前 `linux-autodl-candidate` 分支全部既有修改，完成 Linux/POSIX 候选实现审查与最小修复；Gmsh 固定为 4.15.2 并保留 Windows/Linux x86-64 wheel 双 SHA-256 与 `--require-hashes` 策略。
+- 本地依次通过新增 shell 的 `bash -n`、仓库预检、CAD-free 测试、Linux 专项测试、`compileall`、`git diff --check`，并在全新目录运行 L0/L1 runner；四步返回码和 `overall` 必须全部为 PASS/0。
+- 提交前扫描私钥、令牌、真实 AutoDL 主机/端口、个人工具绝对路径、CAD/网格/restart/VTU/runs 工件和 `config/tools.json`；只提交审核过的代码、测试、合同、文档和必要小型报告。
+- 以提交信息 `build: add Linux AutoDL candidate reproduction` 正常提交并推送，不强推；GitHub 分支 SHA 必须与本机一致。
+- AutoDL 只在 GitHub clone/fetch 期间临时启用 `/etc/network_turbo`，随后清除代理；远端固定 checkout 到已推送 SHA且工作区干净，使用 `/root/autodl-tmp/envs/cfdpipe/bin/python` 在唯一证据目录完成环境报告和 L0/L1。
+- 远程失败必须回传证据、定位、最小修复、完整本地回归、重新提交推送和复验，直到远程 `overall=PASS`；不删除测试、不降低质量门、不忽略返回码或复用旧 PASS。
+- PASS 后打包远程证据并校验 SHA-256，下载到本机 `remote_evidence/`；最终 PLAN 明确 `LOCAL_LINUX_L0_L1=PASS`、`REMOTE_AUTODL_L0_L1=PASS`、`LINUX_L2_L3=PENDING`、`REMOTE_CFD_TOOLCHAIN=NOT_INSTALLED`、`PRIVATE_INPUTS=NOT_TRANSFERRED`、`PILOT_MESH_REPAIR=HOLD`、`RANS=HOLD`、`PRODUCTION_CFD=HOLD`。
+- Linux 平台合同仍保持 `CANDIDATE_PENDING_REMOTE_VERIFICATION`；本轮不安装或运行 Gmsh、SU2、MPI、pvbatch、CUDA，不运行网格、Euler、RANS或后处理，不修改 marker、工况、CAD 哈希、边界条件或网格质量阈值。
+
+### 本地实施与验证结果
+
+- 审查并修复远程验收接口：`check_linux_environment.sh` 兼容 `--output <path>` 与原位置参数；L0/L1 summary 使用规定的 `repository_preflight`、`cad_free_tests`、`compileall`、`git_diff_check` 四个步骤名。
+- 新增回归后，shell `bash -n` PASS，仓库预检35/35 PASS，CAD-free 209/209 PASS，Linux专项9/9 PASS，`compileall` PASS，`git diff --check` PASS。
+- 全新本地证据目录 `runs/reproducibility/linux_l0_l1_local_20260803T095505Z_20758/` 的四步返回码均为0，`summary.json` 为PASS；除unittest正常进度所在的CAD-free stderr外，其余stderr均为空。
+- 提交候选不包含未跟踪的旧 readiness 报告；这些旧报告含历史机器标识和个人路径，只在本地保留，不进入公开 Git 历史。候选内容未包含私钥、密码、令牌、CAD、网格、restart、VTU、`runs/` 或 `config/tools.json`。
+
+## 本轮任务：修复 Linux 环境探测误报
+
+状态：已完成；仅修复 review 已证实的 `check_linux_environment.sh` 可能把不兼容 OS/Python/工具误报为PASS的问题，Linux候选状态和其它工程合同未改变。
+
+### 目标与验收标准
+
+- 从 `config/reproducibility.json` 读取 Ubuntu 22.04、x86-64、Python 3.13.14、Gmsh 4.15.2、SU2 8.5.0、ParaView 6.2.0合同，不在脚本中建立第二份版本真源。
+- 未取得外部工具版本证据时，即使同名可执行文件和Gmsh模块存在也必须保持 `INCOMPLETE`；不为取版本而启动 Gmsh、SU2、MPI 或 pvbatch。
+- Linux专项测试覆盖当前探测结果和“仅发现同名工具不足以PASS”的失败闭合合同；随后按用户指定顺序重跑 shell语法、CAD-free、Linux专项、compileall、diff检查与全新目录L0/L1 runner。
+- 不访问远程写操作、不安装工具、不修改任何质量阈值、物理配置、marker、工况或CAD哈希。
+
+### 实施与验证结果
+
+- `check_linux_environment.sh` 现在从 `config/reproducibility.json` 读取 Ubuntu 22.04 x86-64、Python 3.13.14、Gmsh 4.15.2、SU2 8.5.0和ParaView 6.2.0目标，不重复硬编码版本。
+- OS必须同时为Linux、x86-64且 `/etc/os-release` 为Ubuntu 22.04；Python必须精确匹配3.13.14；Gmsh模块只通过不导入模块的metadata读取版本并要求4.15.2。
+- 本轮禁止启动外部CFD工具，因此仅在PATH发现的 Gmsh/SU2/MPI/pvbatch 被标记为 `FOUND_VERSION_UNVERIFIED`，`observed_version=null`、`version_status=UNVERIFIED`；这些证据绝不满足PASS。JSON新增逐项 `completion_checks` 和 `external_tools_executed_for_version_probe=false`。
+- 新增失败闭合测试使用五个同名可执行fixture；报告保持 `INCOMPLETE`、所有工具版本均为UNVERIFIED，且执行标记不存在，证明探测未启动这些fixture。Linux专项8/8 PASS。
+- 按指定顺序复验：全部新增shell `bash -n` PASS；CAD-free 208/208 PASS；Linux专项8/8 PASS；`python3 -B -m compileall -q src tests scripts` PASS；`git diff --check` PASS；全新 `runs/reproducibility/linux_l0_l1_local_20260803_002/` 的四步均返回0且summary为PASS。
+- runner证据中仓库预检、compileall和diff-check stderr均为0字节；CAD-free stderr只含unittest进度及 `Ran 208 tests ... OK`。本地实际环境仍正确为 `INCOMPLETE`：架构匹配，但OS、Python、Gmsh模块及外部工具版本门未匹配。
+- 本轮未访问远程、未安装或启动任何CFD工具、未修改质量阈值/marker/工况/CAD哈希、未commit或push。下一质量门仍是审查后的AutoDL远程L0/L1。
+
+## 本轮任务：Linux/AutoDL L0～L3 候选复现能力
+
+状态：本地实现与验证已完成；Linux 仍为 `CANDIDATE_PENDING_REMOTE_VERIFICATION`，下一质量门是审查批准后的 AutoDL 远程 L0/L1。本轮未访问网络、未修改远程 AutoDL、未启动任何 CFD 外部工具。
+
+### 本轮目标与验收标准
+
+- 在 `linux-autodl-candidate` 分支保留既有 PLAN 和 readiness 报告，固定 Gmsh 4.15.2 并同时绑定 Windows x86-64 与 Linux manylinux x86-64 wheel SHA-256，保持 `--require-hashes`。
+- 新增安全的 POSIX `cfdpipe` launcher、只检查/建议而不安装的 Linux bootstrap、输出 JSON 且缺生产工具时为 `INCOMPLETE` 的环境检查，以及不覆盖证据目录、失败即停的 L0/L1 runner。
+- 更新平台合同与部署文档：Windows 参考工作站继续 VERIFIED；Ubuntu 22.04 x86-64 仅为 `CANDIDATE_PENDING_REMOTE_VERIFICATION`，L2/L3 等待 AutoDL 实机验证，生产网格、MPI、GPU 和正式 CFD 均不声明已验证。
+- 增加 Linux/POSIX 专项测试，覆盖 shell 语法/权限、argv 转发、原生绝对路径、Windows `.exe` 与 `/mnt/c` 拒绝、subprocess 列表、MPI/pvbatch argv、无 `shell=True`、双 wheel 哈希和候选状态；保留且不放宽全部 Windows 测试。
+- 本地只运行 bash 语法、仓库预检、CAD-free 测试、compileall、Linux 专项测试、`git diff --check` 与一次全新目录的 L0/L1 runner；不导入/运行 Gmsh，不运行真实 CAD、SU2、MPI、pvbatch、网格或 RANS。
+- 检查全部日志、输出和 Git diff 后更新本节，记录通过项、缺失工具、AutoDL 下一步精确命令、候选状态、风险与下一质量门；本轮不 commit、不 push。
+
+### 实施与验证结果
+
+- 已创建并切换到 `linux-autodl-candidate`；保留了任务开始前已修改的 `PLAN.md` 和未跟踪的 `reports/autodl_readiness_check.{json,md}`，未覆盖提交、未 commit、未 push。
+- `requirements-gmsh.txt` 仍只声明一次 `gmsh==4.15.2`，同时绑定 Windows x86-64 wheel `7b3608…d711` 与 Linux manylinux x86-64 wheel `4076a9…108c`；安装文档继续要求 pip `--require-hashes`。
+- 新增 `scripts/cfdpipe.sh`、`bootstrap_linux.sh`、`check_linux_environment.sh` 和 `run_linux_l0_l1.sh`，均为 bash、`set -euo pipefail`、权限0755。launcher 使用 argv 数组并支持含空格参数；bootstrap 只检查并打印建议命令；环境检查不导入 Gmsh、缺生产工具时输出 `INCOMPLETE`；L0/L1 runner 拒绝覆盖证据目录并逐步记录 stdout/stderr/返回码/UTC 时间。
+- 平台合同保留 Windows `VERIFIED_ON_REFERENCE_WORKSTATION`，新增 Ubuntu 22.04 x86-64 `CANDIDATE_PENDING_REMOTE_VERIFICATION`；只声明 L0/L1 可运行，L2/L3 待远端验证，生产网格、MPI、GPU、正式 CFD 均为未验证。
+- Linux 专项测试7/7 PASS；与既有 toolchain 合跑24/24 PASS。完整 CAD-free 门207/207 PASS；仓库预检35/35 PASS；`compileall -q src tests scripts`、全部新 shell 的 `bash -n`、实际0755权限和 `git diff --check` 均 PASS。未导入/运行 Gmsh，未启动 SU2、MPI、pvbatch、网格或 RANS。
+- 本地 runner 证据位于 `runs/reproducibility/linux_l0_l1_local_20260803_001/`（Git忽略）：四步 `verify_repository`、`cad_free_tests`、`compileall`、`git_diff_check` 均返回0，`summary.json`/`summary.md` 状态为PASS；CAD-free stderr仅含 unittest 正常进度与最终 `Ran 207 tests ... OK`，其余三份stderr为0字节。
+- 本地环境探测 JSON 状态为预期 `INCOMPLETE`：Python `/usr/bin/python3` 3.14.4，pip、Gmsh模块/CLI、SU2_CFD、SU2_SOL、mpiexec、pvbatch均MISSING；Windows `.exe` 和 `/mnt/c` 可执行文件拒绝策略为true。`bootstrap_linux.sh --dry-run` 因pip缺失返回非零并明确报告，未安装软件。
+
+### AutoDL 下一质量门命令（审查、提交并推送批准 SHA 后执行）
+
+```bash
+cd /root/autodl-tmp/5950L
+git fetch origin
+git switch --detach <APPROVED_COMMIT_SHA>
+CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python scripts/repro/bootstrap_linux.sh --dry-run
+CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python scripts/repro/check_linux_environment.sh /root/autodl-tmp/linux-evidence/environment.json
+CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python scripts/repro/run_linux_l0_l1.sh --output /root/autodl-tmp/linux-evidence/l0_l1_<UTC_TAG>
+```
+
+GitHub clone/fetch 如需 AutoDL 网络加速，只在该操作期间启用并在完成后关闭代理。上述命令当前未执行；`<APPROVED_COMMIT_SHA>` 与 `<UTC_TAG>` 必须在审查后替换为不可变提交和全新证据标识。
+
+### 剩余风险
+
+- 当前 WSL Python 不是远端指定的3.13.14且缺pip；本地只证明代码级候选 L0/L1，不能替代 AutoDL 实机证据。
+- AutoDL 上的 Gmsh、SU2/MPI、pvbatch 尚未部署或验证；L2/L3、CUDA/GPU、生产网格和正式 CFD 均未通过，Linux不得标记 VERIFIED/PASS。
+- 本轮未传输 STEP/BREP 或 `runs/`；L4以后仍需独立受控渠道和原有SHA-256/只读/lineage门。
+- 原有 Pilot/粗网格质量门仍为INCOMPLETE，本轮没有改变 marker、工况、CAD哈希、网格阈值或任何物理合同。
+
+## 本轮任务：AutoDL 连接复核和 Linux 迁移计划
+
+状态：进行中；本轮仅执行本地与远程只读检查并形成计划，不部署、不传输私有数据、不启动任何 CFD 外部工具。
+
+### 本轮目标与验收标准
+
+- 使用用户指定的 `ssh autodl-5950` 只读命令复核远端主机、Ubuntu、cgroup CPU/内存、数据盘、GPU、指定 Python 以及 git/tmux/rsync 可见性；不修改远程文件、不安装软件、不运行 `network_turbo`。
+- 报告本地 Git 根、当前 commit、`git status --short`，并基于现有文档、代码和测试核对 Windows/Linux 差异及 `scripts/cfdpipe.sh`、Linux bootstrap、Linux 工具路径测试、Linux 命令构造测试、跨平台 Gmsh wheel 锁定现状。
+- 只制定 Linux/AutoDL L0-L3 兼容改造、固定 commit 发布/克隆、工具部署、连接测试、私有输入/证据交接、真实项目复现和 Pilot 网格质量修复的分阶段计划，不执行这些步骤。
+- 生成并校验 `reports/autodl_readiness_check.json` 与 `reports/autodl_readiness_check.md`，明确通过项、缺失项、证据、风险和唯一下一条建议命令；不上传 CAD、不启动 Gmsh/SU2/pvbatch、不运行网格或 RANS、不修改质量阈值、不提交 Git。
+
+### 实施与验证结果
+
+- 远程只读脚本经 `ssh -F ~/.ssh/config autodl-5950` 返回0：Ubuntu 22.04.1、CPU `2500000/100000=25`核、内存上限120 GiB、`/root/autodl-tmp` 550G、RTX PRO 6000 Blackwell 97887 MiB/driver 590.44.01、指定Python 3.13.14以及git/tmux/rsync均实测存在。原样SSH在连接前被WSL系统SSH include所有权门拒绝；未修改系统文件。
+- 本地Git根为 `<LOCAL_REPOSITORY_ROOT>`，分支`main`，HEAD=`5e3af9ab71d7bdc2a9f5cd3a42f7d54f694cc764`；WSL dubious ownership仅以逐命令`-c safe.directory=<LOCAL_REPOSITORY_ROOT>`绕过，未改全局配置。本轮初始短状态为` M PLAN.md`。
+- `scripts/cfdpipe.sh`与Linux bootstrap缺失；工具解析和argv构造有通用POSIX分支，但无Linux专项合同/CI。Gmsh锁只有一个哈希，已安装wheel元数据为`win_amd64`，故跨Windows/Linux哈希锁缺失。
+- JSON解析PASS；SU2 MPI、pvbatch、几何审查pvbatch三条不启动外部程序的命令构造测试3/3 PASS。`tests.test_toolchain`在当前WSL `/mnt/c`工作树17项中9项因临时fixture `chmod` 返回EPERM而ERROR，证明Linux L1当前不能标PASS；一次错误测试选择器已纠正，不计作产品缺陷。
+- 已生成 `reports/autodl_readiness_check.json` 与 `.md`，整体保持`INCOMPLETE`并列出九阶段迁移计划、风险和下一条仅建议但未执行的分支命令。本轮未安装、上传、启动CFD工具、运行网格/RANS、改阈值或提交Git。
+
 ## 本轮任务：合并首次公开发布 PR
 
 状态：已完成；用户明确确认后，公开仓库 `qofotel201-coder/5950L` 的 PR #1 已由 draft 转为 ready，并以普通 merge commit 合并到默认分支 `main`。远端与本地 `main` 均已同步。

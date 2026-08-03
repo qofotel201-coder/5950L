@@ -294,6 +294,10 @@ class ToolchainTests(unittest.TestCase):
             environ={"CFD_GMSH": "/mnt/c/tools/gmsh.exe"},
             which=lambda _name: None,
         )
+        if os.name != "nt":
+            with self.assertRaisesRegex(ToolResolutionError, "Windows .exe"):
+                resolver.resolve("gmsh")
+            return
         with mock.patch.object(Path, "is_file", return_value=True), mock.patch(
             "cfdpipe.toolchain.os.access", return_value=True
         ):

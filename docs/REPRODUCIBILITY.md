@@ -1,6 +1,22 @@
 # 复现指南
 
-本指南用于在另一台电脑上复验已经通过的能力，而不是跳过质量门启动生产计算。当前参考平台是 Windows x64；Linux/WSL 代码路径存在，但不属于本次已验证软件基线。
+本指南用于在另一台电脑上复验已经通过的能力，而不是跳过质量门启动生产计算。当前参考平台仍是 Windows x64；Ubuntu 22.04 x86-64 仅为 `CANDIDATE_PENDING_REMOTE_VERIFICATION`，不得写成 VERIFIED 或 PASS。
+
+## Linux / AutoDL 候选部署边界
+
+- AutoDL 网络加速只用于 GitHub clone/fetch，完成后必须关闭代理；依赖与外部工具部署需单独批准。
+- 项目和大型工件应放在 `/root/autodl-tmp`，但仓库脚本不得硬编码该机器路径。
+- L0/L1 不需要 CAD，也不导入或运行 Gmsh；L2/L3 必须等待 AutoDL 实机工具部署与验证。
+- STEP/BREP 和历史 `runs/` 不通过 Git 传输，只能使用独立受控渠道并复核既有 SHA-256。
+- 在远程 L0/L1、随后 L2/L3 质量门逐级通过前，不得进入生产网格、MPI/GPU 声明或正式 CFD。
+
+候选机建议依次执行：
+
+```bash
+scripts/repro/bootstrap_linux.sh --dry-run
+scripts/repro/check_linux_environment.sh runs/reproducibility/linux_environment.json
+scripts/repro/run_linux_l0_l1.sh --output runs/reproducibility/linux_l0_l1_<UTC_TAG>
+```
 
 ## 1. 复现层级
 

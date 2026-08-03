@@ -24,6 +24,7 @@ CAD_FREE_TEST_MODULES = (
     "tests.test_mesh_audit",
     "tests.test_iges_metadata",
     "tests.test_reproducibility",
+    "tests.test_linux_candidate",
 )
 
 

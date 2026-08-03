@@ -402,7 +402,9 @@ class CommandRunnerTests(unittest.TestCase):
         ):
             outcome = CommandRunner._terminate_process_group(process)
 
-        process.send_signal.assert_called_once_with(signal.CTRL_BREAK_EVENT)
+        process.send_signal.assert_called_once_with(
+            getattr(signal, "CTRL_BREAK_EVENT", 1)
+        )
         process.kill.assert_called_once_with()
         self.assertEqual(wait_bounded.call_count, 2)
         self.assertTrue(outcome.graceful_termination_attempted)
