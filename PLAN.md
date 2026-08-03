@@ -1,5 +1,19 @@
 # PLAN
 
+## 本轮任务：AutoDL 远程 CFD 工具链部署与 L2/L3 通用连接验收
+
+状态：进行中；只部署和验证 CAD-free 通用工具链，不传输私有输入，不运行真实项目网格、RANS或生产CFD。
+
+### 目标与验收标准
+
+- 在 AutoDL 数据盘的受控目录部署 Gmsh Python API/CLI 4.15.2、SU2_CFD/SU2_SOL 8.5.0、兼容 MPI 和 ParaView/pvbatch 6.2.x；记录官方来源、绝对路径、版本、SHA-256、UTC命令和返回码，不启用CUDA或GUI。
+- `config/tools.json` 只在 AutoDL 工作树生成并保持Git忽略，全部路径为原生Linux绝对路径，Windows `.exe` 数量为0，`pvbatch`不得由GUI或`pvpython`替代。
+- L2必须通过实际版本与最小功能验证：Gmsh initialize/OCC/二维MSH及SU2写出；SU2串行和2进程MPI各运行约5步Euler并产生history与ParaView文件；pvbatch打开本轮解并生成合法JSON/CSV。仅命令存在或版本未验证不得判PASS。
+- L3必须在无客户CAD条件下完成 Python→Gmsh→smoke.su2→SU2_CFD→VTU/PVTU→pvbatch→JSON/CSV 六段连接，六段与overall全部PASS，关键返回码为0，marker、迭代数、点/单元数、日志和输入输出哈希完整。
+- 任一普通安装、依赖、路径、MPI、脚本或测试问题都保存证据并执行最小修复、回归、审查、重新部署和全新目录复验；不得删除测试、放宽门限、忽略返回码、手改结果或复用旧PASS。
+- 本轮不得上传或使用STEP/BREP，不修改marker、工况、CAD哈希、边界条件或网格质量阈值，不运行真实网格、RANS、后处理或生产CFD；CUDA保持关闭且不声明GPU验证。
+- PASS后回传并校验证据，更新状态为 `REMOTE_CFD_TOOLCHAIN=PASS`、`LINUX_L2=PASS`、`LINUX_L3=PASS`、`PRIVATE_INPUTS=NOT_TRANSFERRED`、`REAL_PROJECT_REPRODUCTION=PENDING`、`PILOT_MESH_REPAIR=HOLD`、`RANS=HOLD`、`PRODUCTION_CFD=HOLD`，完成本地质量门、提交和正常推送。
+
 ## 本轮任务：发布 Linux 候选并完成 AutoDL L0/L1 实机验证
 
 状态：本地与 AutoDL L0/L1 均已 PASS；证据已打包回传并通过 SHA-256 校验。Linux 仍为 `CANDIDATE_PENDING_REMOTE_VERIFICATION`，L2/L3 与外部 CFD 工具链尚未验证。

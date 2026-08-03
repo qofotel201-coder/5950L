@@ -1092,6 +1092,20 @@ class SU2BridgeTests(unittest.TestCase):
             )
         )
 
+    def test_signed_two_dimensional_quality_nan_is_classified(self) -> None:
+        mesh_validation = validate_su2_mesh(self._write_mesh())
+        diagnostic = "| Orthogonality Angle (deg.) | -nan | -nan |"
+        stdout = (
+            "Computing mesh quality statistics for the dual control volumes\n"
+            f"{diagnostic}\n"
+            "---------------- Begin Solver ----------------\n"
+        )
+        classified = classify_2d_quality_nan(stdout, "", mesh_validation)
+        self.assertEqual(len(classified), 1)
+        self.assertEqual(
+            scan_fatal_output(stdout, "", allowed_diagnostics=classified), []
+        )
+
     def test_quality_nan_exception_does_not_hide_an_explicit_error(self) -> None:
         line = "ERROR: Orthogonality Angle (deg.) | nan | nan"
         self.assertEqual(scan_fatal_output(line, ""), [f"stdout:1: {line}"])

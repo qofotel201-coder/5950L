@@ -43,7 +43,7 @@ _NON_NAN_FATAL_RE = re.compile(
 )
 _NONFATAL_2D_QUALITY_NAN_RE = re.compile(
     r"^\s*\|\s*Orthogonality\s+Angle\s*\(deg\.\)\s*\|"
-    r"\s*nan\s*\|\s*nan\s*\|\s*$",
+    r"\s*[+-]?nan\s*\|\s*[+-]?nan\s*\|\s*$",
     re.IGNORECASE,
 )
 _WARNING_RE = re.compile(r"\bwarning\b", re.IGNORECASE)
