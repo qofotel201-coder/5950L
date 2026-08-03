@@ -1294,7 +1294,15 @@ def audit_mixed_mesh(
         marker_counts[name] = count
     exterior = {face for face, values in owners.items() if len(values) == 1}
     if set(marker_owner) != exterior:
-        raise BoundaryLayerSmokeError("external volume faces are not exactly covered by markers")
+        missing = sorted(exterior - set(marker_owner))
+        extra = sorted(set(marker_owner) - exterior)
+        raise BoundaryLayerSmokeError(
+            "external volume faces are not exactly covered by markers: "
+            f"exterior={len(exterior)}, marked={len(marker_owner)}, "
+            f"unmarked={len(missing)}, nonexternal_marked={len(extra)}, "
+            f"unmarked_sample={missing[:8]!r}, "
+            f"nonexternal_marked_sample={extra[:8]!r}"
+        )
 
     interface_keys: set[tuple[int, ...]] = set()
     interface_region_pairs: Counter[tuple[str, str]] = Counter()
