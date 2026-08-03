@@ -13,6 +13,7 @@ import copy
 from datetime import datetime, timezone
 import hashlib
 import importlib
+import inspect
 import json
 import math
 import os
@@ -1989,8 +1990,15 @@ def run_coarse_repair_audit(
                 "repair discovery is restricted to the first projected point"
             )
         try:
+            validation_arguments: dict[str, Any] = {}
+            if "expected_coarse_contract_sha256" in inspect.signature(
+                validate_boundary_layer_schedule_binding
+            ).parameters:
+                validation_arguments["expected_coarse_contract_sha256"] = str(
+                    local_schedule_binding.get("coarse_contract_sha256", "")
+                )
             validated_schedule_binding = validate_boundary_layer_schedule_binding(
-                contract, local_schedule_binding
+                contract, local_schedule_binding, **validation_arguments
             )
         except BoundaryLayerScheduleBindingError as error:
             raise CoarseRepairAuditError(
