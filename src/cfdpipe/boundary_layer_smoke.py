@@ -14473,6 +14473,82 @@ class RealProjectBoundaryLayerStrategy:
             finally:
                 gmsh.model.mesh.removeSizeCallback()
                 gmsh.option.setNumber("Mesh.MeshOnlyEmpty", 0)
+            # HXT may recreate the core side of an orphaned prism/core surface
+            # with coordinate-identical but differently tagged nodes.  Merge
+            # those tags deterministically back onto the frozen Pilot surface
+            # before restoring the prism volumes, without moving any node.
+            frozen_interface_nodes = {
+                int(node)
+                for records in interface_surface_snapshots.values()
+                for record in records
+                for node in record["nodes"]
+            }
+            fresh_coordinates = _nodes_from_gmsh(gmsh)
+            fresh_by_coordinate: dict[tuple[str, str, str], list[int]] = defaultdict(list)
+            for node, coordinates in fresh_coordinates.items():
+                fresh_by_coordinate[
+                    tuple(float(value).hex() for value in coordinates)
+                ].append(int(node))
+            interface_replacements: dict[int, int] = {}
+            for frozen_node in sorted(frozen_interface_nodes):
+                key = tuple(
+                    float(value).hex() for value in all_coordinates[frozen_node]
+                )
+                candidates = fresh_by_coordinate.get(key, [])
+                if not candidates:
+                    raise BoundaryLayerSmokeError(
+                        "production core lost a frozen interface coordinate"
+                    )
+                selected_node = (
+                    frozen_node if frozen_node in candidates else min(candidates)
+                )
+                interface_replacements[selected_node] = frozen_node
+            remapped_core: dict[int, list[dict[str, Any]]] = {}
+            for core_tag in (core1_tag, core2_tag):
+                records = _element_records_from_gmsh(gmsh, 3, core_tag)
+                if not records or any(record["type"] != "Tetrahedron 4" for record in records):
+                    raise BoundaryLayerSmokeError("production core snapshot is not Tet4-only")
+                remapped_core[core_tag] = [
+                    {
+                        **record,
+                        "nodes": [
+                            interface_replacements.get(int(node), int(node))
+                            for node in record["nodes"]
+                        ],
+                    }
+                    for record in records
+                ]
+            gmsh.model.mesh.clear([(3, core1_tag), (3, core2_tag)])
+            for tag, records in interface_surface_snapshots.items():
+                gmsh.model.mesh.clear([(2, tag)])
+                required_nodes = {
+                    int(node) for record in records for node in record["nodes"]
+                }
+                present_nodes = set(_nodes_from_gmsh(gmsh))
+                nodes = sorted(required_nodes - present_nodes)
+                if nodes:
+                    gmsh.model.mesh.addNodes(
+                        2, tag, nodes,
+                        [value for node in nodes for value in all_coordinates[node]],
+                    )
+                by_type: dict[int, list[dict[str, Any]]] = defaultdict(list)
+                for record in records:
+                    by_type[int(record["element_type"])].append(record)
+                for element_type, typed_records in sorted(by_type.items()):
+                    gmsh.model.mesh.addElementsByType(
+                        tag,
+                        element_type,
+                        [int(record["tag"]) for record in typed_records],
+                        [int(node) for record in typed_records for node in record["nodes"]],
+                    )
+            tetra_type = int(gmsh.model.mesh.getElementType("tetrahedron", 1))
+            for core_tag, records in remapped_core.items():
+                gmsh.model.mesh.addElementsByType(
+                    core_tag,
+                    tetra_type,
+                    [int(record["tag"]) for record in records],
+                    [int(node) for record in records for node in record["nodes"]],
+                )
             prism_type = int(gmsh.model.mesh.getElementType("prism", 1))
             current_nodes = set(_nodes_from_gmsh(gmsh))
             current_curves = {int(tag) for _dim, tag in gmsh.model.getEntities(1)}
