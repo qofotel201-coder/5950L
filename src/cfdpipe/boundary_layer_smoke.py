@@ -2857,10 +2857,22 @@ def _validated_local_surface_schedules(
             raise BoundaryLayerSmokeError(
                 "physical-schedule homotopy scope or replay approval is incomplete"
             )
+        replay_binding_hash = configured_binding_hash
+        if continuation_requested:
+            continuation_source_bindings = (
+                continuation_endpoint.get("source_bindings", {})
+                if isinstance(continuation_endpoint, Mapping)
+                else {}
+            )
+            replay_binding_hash = str(
+                continuation_source_bindings.get(
+                    "local_schedule_binding_sha256", ""
+                )
+            )
         validated_replay = _validated_direction_replay_approval_for_config(
             config,
             replay_approval,
-            local_schedule_binding_sha256=configured_binding_hash,
+            local_schedule_binding_sha256=replay_binding_hash,
         )
         try:
             validated_homotopy = validate_physical_schedule_homotopy_endpoint(
@@ -2946,7 +2958,7 @@ def _validated_local_surface_schedules(
                 != validated_replay["approval_sha256"]
                 or validated_continuation["source_bindings"]
                 ["local_schedule_binding_sha256"]
-                != configured_binding_hash
+                != replay_binding_hash
             ):
                 raise BoundaryLayerSmokeError(
                     "physical-schedule frontier endpoint lineage differs"
