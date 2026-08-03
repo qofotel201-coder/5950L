@@ -1,0 +1,106 @@
+{
+  "schema": "cfdpipe.autodl_pilot_repair_result.v1",
+  "status": "FAIL",
+  "audit_only": true,
+  "production_mesh_eligible": false,
+  "production_coarse_mesh_approved": false,
+  "run_id": "autodl_pilot_repair_20260803T163705Z",
+  "git_sha": "9191582aa3dcbc489bd28cd770daa0f8c7509952",
+  "command": "cd /root/autodl-tmp/5950L && CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python bash scripts/cfdpipe.sh pipeline coarse-repair-audit --config config/coarse_mesh.toml --characteristic-length 0.40 --projection-manifest runs/mesh/coarse/projection_040_rearcap0225_cal032_20260802_001/projection_manifest.json --projection-sha256 9fdad48e0c60178b39bf56cfd717490d137d47b1a80a7465f713056ebc343b6d --local-schedule runs/mesh/coarse/local_schedule_20260802_004/boundary_layer_local_schedule.json --local-schedule-sha256 23a66ddfb78ae9dc28daa7f51d61cdafbe8e447948a72b15faf64f5c682941d1 --schedule-feasibility-endpoint physical-schedule-first-frontier-direction-audit --direction-audit-primary runs/mesh/coarse/direction_pattern_040_min_growth_20260802_001/coarse_repair_audit_manifest.json --direction-audit-primary-sha256 7ae92aba9f6a7ec0a325412a9d2eb1f8e978329bcf4ffa1c7be500b82c06b2bc --direction-audit-confirmation runs/mesh/coarse/direction_pattern_040_min_growth_20260802_002/coarse_repair_audit_manifest.json --direction-audit-confirmation-sha256 cc66b618b083309ac5fd447e836f9baea69858d328bee9381e04d0824eacb314 --homotopy-audit-manifest runs/mesh/coarse/schedule_homotopy_040_20260802_002/coarse_repair_audit_manifest.json --homotopy-audit-manifest-sha256 85ae060051eb802295262e9c1d6451f1b517d4c55a2b1059c443677b1bb62412 --output runs/mesh/coarse/autodl_pilot_repair_20260803T163705Z --timeout 840 --quiet",
+  "cwd": "/root/autodl-tmp/5950L",
+  "start_utc": "2026-08-03T16:37:05Z",
+  "end_utc": "2026-08-03T16:39:33Z",
+  "returncode": 1,
+  "quality_threshold": 0.01,
+  "initial_minimum_scaled_jacobian": 0.003730823,
+  "initial_below_threshold_count": 12,
+  "accepted_candidate": null,
+  "candidate_count": 7,
+  "quality_evaluation_count": 1537,
+  "maximum_quality_evaluations": 4096,
+  "within_evaluation_cap": true,
+  "best_observed_unaccepted": {
+    "candidate_index_1_based": 6,
+    "ring_width": 32,
+    "minimum_scaled_jacobian": 0.00773904276716142,
+    "below_threshold_count": 20,
+    "unsafe_reasons": [
+      "lineage_contained"
+    ]
+  },
+  "final_minimum_scaled_jacobian": null,
+  "final_below_threshold_count": null,
+  "nonpositive_count": 0,
+  "nonfinite_count": 0,
+  "unsafe_reason_counts": {
+    "lineage_contained": 7
+  },
+  "historical_evidence": [
+    {
+      "path": "runs/mesh/coarse/projection_040_rearcap0225_cal032_20260802_001/projection_manifest.json",
+      "size_bytes": 92258,
+      "sha256": "9fdad48e0c60178b39bf56cfd717490d137d47b1a80a7465f713056ebc343b6d",
+      "purpose": "hash-bound 0.40 m projection",
+      "actual_size_bytes": 92258,
+      "actual_sha256": "9fdad48e0c60178b39bf56cfd717490d137d47b1a80a7465f713056ebc343b6d",
+      "regular_file": true,
+      "symlink": false,
+      "status": "PASS"
+    },
+    {
+      "path": "runs/mesh/coarse/local_schedule_20260802_004/boundary_layer_local_schedule.json",
+      "size_bytes": 67834,
+      "sha256": "23a66ddfb78ae9dc28daa7f51d61cdafbe8e447948a72b15faf64f5c682941d1",
+      "purpose": "48-wall physical local schedule binding",
+      "actual_size_bytes": 67834,
+      "actual_sha256": "23a66ddfb78ae9dc28daa7f51d61cdafbe8e447948a72b15faf64f5c682941d1",
+      "regular_file": true,
+      "symlink": false,
+      "status": "PASS"
+    },
+    {
+      "path": "runs/mesh/coarse/direction_pattern_040_min_growth_20260802_001/coarse_repair_audit_manifest.json",
+      "size_bytes": 656551,
+      "sha256": "7ae92aba9f6a7ec0a325412a9d2eb1f8e978329bcf4ffa1c7be500b82c06b2bc",
+      "purpose": "first independent direction audit",
+      "actual_size_bytes": 656551,
+      "actual_sha256": "7ae92aba9f6a7ec0a325412a9d2eb1f8e978329bcf4ffa1c7be500b82c06b2bc",
+      "regular_file": true,
+      "symlink": false,
+      "status": "PASS"
+    },
+    {
+      "path": "runs/mesh/coarse/direction_pattern_040_min_growth_20260802_002/coarse_repair_audit_manifest.json",
+      "size_bytes": 656528,
+      "sha256": "cc66b618b083309ac5fd447e836f9baea69858d328bee9381e04d0824eacb314",
+      "purpose": "independent direction confirmation",
+      "actual_size_bytes": 656528,
+      "actual_sha256": "cc66b618b083309ac5fd447e836f9baea69858d328bee9381e04d0824eacb314",
+      "regular_file": true,
+      "symlink": false,
+      "status": "PASS"
+    },
+    {
+      "path": "runs/mesh/coarse/schedule_homotopy_040_20260802_002/coarse_repair_audit_manifest.json",
+      "size_bytes": 3594997,
+      "sha256": "85ae060051eb802295262e9c1d6451f1b517d4c55a2b1059c443677b1bb62412",
+      "purpose": "fixed-direction physical schedule homotopy frontier",
+      "actual_size_bytes": 3594997,
+      "actual_sha256": "85ae060051eb802295262e9c1d6451f1b517d4c55a2b1059c443677b1bb62412",
+      "regular_file": true,
+      "symlink": false,
+      "status": "PASS"
+    }
+  ],
+  "resource_usage": {
+    "cgroup_memory_peak_bytes": 7062949888,
+    "cpu_start": "usage_usec 2997421617\nuser_usec 2492987867\nsystem_usec 504433749\nnr_periods 323706\nnr_throttled 20\nthrottled_usec 114667922\n",
+    "cpu_end": "usage_usec 3150127095\nuser_usec 2642432042\nsystem_usec 507695052\nnr_periods 325182\nnr_throttled 20\nthrottled_usec 114667922\n"
+  },
+  "source_manifest": "/root/autodl-tmp/5950L/runs/mesh/coarse/autodl_pilot_repair_20260803T163705Z/coarse_repair_audit_manifest.json",
+  "blocker": "All seven immutable collar candidates created low-quality prism lineage outside the frozen residual set; the best unaccepted minimum Scaled Jacobian remained below 0.01.",
+  "su2_called": false,
+  "paraview_called": false,
+  "cuda_called": false,
+  "mesh_written": false
+}

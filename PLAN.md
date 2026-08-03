@@ -2,7 +2,33 @@
 
 ## 本轮任务：AutoDL Pilot audit-only 局部棱柱质量修复审计
 
-状态：进行中。严格消费 `reports/autodl_pilot_repair_execution_plan.json` 的 `unique_execution_entry`；只将 `<UTC>` 展开为唯一运行标识，不增删或改写其它参数。在 AutoDL 运行 root-schedule collar v5 的 AUDIT_ONLY 审计，判断是否允许进入生产粗网格构建，但本轮不写生产网格、不调用 SU2/pvbatch/RANS、不启用 CUDA。
+状态：已完成审计，结论为 FAIL / NO-GO。严格消费 `reports/autodl_pilot_repair_execution_plan.json` 的 `unique_execution_entry`，仅展开 `<UTC>`；七个冻结 collar 候选全部完成评估，但均因产生冻结残差集合之外的新低质量棱柱 lineage 而不可接受。未写网格、未调用 SU2/pvbatch/RANS/CUDA，生产粗网格未获授权。
+
+### 最终状态
+
+- `REMOTE_AUTODL_L6 = PASS`
+- `PILOT_MESH_REPAIR = FAIL_CANDIDATE_SET_EXHAUSTED`
+- `PILOT_REPAIR_PARAMETERS = NOT_FROZEN`
+- `PRODUCTION_COARSE_MESH = HOLD`
+- `RANS = DIAGNOSTIC_L6_PASS`
+- `PRODUCTION_CFD = HOLD`
+
+### 实施与验证结果
+
+- 本地、GitHub 与 AutoDL 最终审计提交固定为同一 SHA；五项最小历史 JSON 均为普通非链接文件，大小与计划 SHA-256 全部 PASS。唯一命令除输出目录 UTC 外未修改，最终 run 为 `autodl_pilot_repair_20260803T163705Z`。
+- 控制器、worker、Gmsh、历史 provenance、4096 次评估上限与 audit-only 零写出门全部通过；实机暴露的路径绑定、Linux worker 资源、portable mesh lineage 和候选记录缺陷均以最小代码修复并经过专项与完整 CAD-free 回归。
+- collar 七个 ring width `1,2,4,8,16,32,64` 均实际评估。累计质量评估 `1537/4096`；所有候选的非正与非有限计数均为 0，但七个候选的 `lineage_contained` 均失败，故接受候选为 none。
+- 初始冻结证据最小 Scaled Jacobian 为 `0.003730823`、阈下 12；本轮最佳观测但未接受的 ring width 32 为 `0.00773904276716142`、阈下 20，仍低于冻结阈值 `0.01`。不得将该观测作为修复结果或生产参数。
+- 最终命令返回码为 1，审计报告明确 `production_coarse_mesh_approved=false`；证据包回传至 `remote_evidence/pilot_repair_autodl_pilot_repair_20260803T163705Z/`，本机复算 SHA-256 为 `8ff2ea73dc5eb8fe91c2bf286822b7597a5227b227f48f198028a89e5f87e201`。
+- 因 audit-only 未通过，本轮没有生成 `production_mesh_family_plan.*`，也没有给出或执行生产粗网格入口；下一步仍必须是新的、单独批准的 Pilot 候选策略设计阶段，不能进入生产网格。
+
+### 下一阶段唯一入口
+
+```bash
+cd /root/autodl-tmp/5950L && CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python bash scripts/cfdpipe.sh pipeline coarse-repair-audit --help
+```
+
+该命令只读取下一轮候选策略入口帮助，不执行网格或审计；任何扩大候选枚举、改变策略或新 unique entry 都必须先形成新的机器计划并单独批准，阈值仍不得降低。
 
 ### 目标与验收标准
 
