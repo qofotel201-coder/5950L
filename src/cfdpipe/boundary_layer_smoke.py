@@ -13588,12 +13588,17 @@ class RealProjectBoundaryLayerStrategy:
                     [node for face in faces for node in face],
                 )
             volume_map: dict[int, int] = {}
+            gmsh.model.mesh.createGeometry(
+                [(2, surface) for surface in sorted(surface_map.values())]
+            )
             for core in sorted(core_boundaries):
                 mapped = [
                     (1 if tag > 0 else -1) * surface_map[abs(tag)]
                     for tag in core_boundaries[core]
                 ]
-                volume_map[core] = int(gmsh.model.addDiscreteEntity(3, boundary=mapped))
+                loop = int(gmsh.model.geo.addSurfaceLoop(mapped))
+                volume_map[core] = int(gmsh.model.geo.addVolume([loop]))
+            gmsh.model.geo.synchronize()
             gmsh.option.setNumber("Mesh.Algorithm3D", 10)
             RealProjectBoundaryLayerStrategy._configure_production_volume_sizes(gmsh, config)
             gmsh.model.mesh.generate(3)
