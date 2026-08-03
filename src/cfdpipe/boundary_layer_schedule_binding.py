@@ -531,13 +531,25 @@ def bind_boundary_layer_local_schedule(
 
 
 def validate_boundary_layer_schedule_binding(
-    coarse_contract: Mapping[str, Any], binding: Mapping[str, Any]
+    coarse_contract: Mapping[str, Any],
+    binding: Mapping[str, Any],
+    *,
+    expected_coarse_contract_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Revalidate a binding at its calibration-strategy consumption point."""
 
     expected = _contract_inputs(coarse_contract)
     if not isinstance(binding, Mapping) or binding.get("schema") != _BINDING_SCHEMA or binding.get("status") != "PASS":
         raise BoundaryLayerScheduleBindingError("local schedule binding is missing or not PASS")
+    if expected_coarse_contract_sha256 is not None:
+        lineage_hash = str(expected_coarse_contract_sha256).casefold()
+        clearance_hash = binding.get("clearance_evidence_contract_sha256")
+        if not _is_sha256(lineage_hash) or not _is_sha256(clearance_hash):
+            raise BoundaryLayerScheduleBindingError(
+                "legacy local schedule binding lineage is invalid"
+            )
+        expected["coarse_contract_sha256"] = lineage_hash
+        expected["clearance_evidence_contract_sha256"] = str(clearance_hash)
     unsigned = dict(binding)
     configured = unsigned.pop("binding_sha256", None)
     if not _is_sha256(configured) or _canonical_sha256(unsigned) != configured:
@@ -656,6 +668,7 @@ def validate_boundary_layer_schedule_binding(
         source_plan_path=source_path,
         source_plan_sha256=str(binding["source_plan_sha256"]),
         source_plan_size_bytes=len(payload),
+        expected_coarse_contract_sha256=expected_coarse_contract_sha256,
     )
     if dict(binding) != rebuilt:
         raise BoundaryLayerScheduleBindingError(

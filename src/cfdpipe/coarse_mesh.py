@@ -977,6 +977,7 @@ def make_coarse_strategy_config(
     *,
     local_schedule_binding: Mapping[str, Any] | None = None,
     projection_only: bool = False,
+    expected_schedule_contract_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Derive the existing geometry strategy inputs for one bounded calibration."""
 
@@ -1051,7 +1052,9 @@ def make_coarse_strategy_config(
             )
         try:
             validated_binding = validate_boundary_layer_schedule_binding(
-                contract, local_schedule_binding
+                contract,
+                local_schedule_binding,
+                expected_coarse_contract_sha256=expected_schedule_contract_sha256,
             )
         except BoundaryLayerScheduleBindingError as error:
             raise CoarseMeshError(

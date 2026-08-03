@@ -815,6 +815,9 @@ def make_coarse_repair_audit_strategy_config(
         contract,
         characteristic_length_m,
         local_schedule_binding=local_schedule_binding,
+        expected_schedule_contract_sha256=str(
+            local_schedule_binding.get("coarse_contract_sha256", "")
+        ),
     )
     result.pop("normalized_config_sha256", None)
     result.update(
