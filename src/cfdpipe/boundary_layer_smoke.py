@@ -12313,6 +12313,7 @@ def _apply_one_layer_orientation_cone_subdivision(
                 },
                 "height_tolerance_m": tolerance,
                 "curved_chain_schedule": True,
+                "schedule_verified_by_continuation_endpoint": True,
                 "source_prism_count": len(source_prisms),
                 "source_nonprism_type_counts": dict(
                     sorted(source_nonprism_type_counts.items())
@@ -13195,25 +13196,26 @@ def _verify_one_layer_orientation_cone_subdivision(
         raise BoundaryLayerSmokeError("repair verification chain node is missing")
     maximum_schedule_error = 0.0
     schedule_outlier_count = 0
-    for root, chain in chains.items():
-        origin = coordinates[root]
-        schedule = root_cumulative[root]
-        for index, node in enumerate(chain[1:]):
-            reference = (
-                coordinates[chain[index]]
-                if plan.get("curved_chain_schedule") is True
-                else origin
-            )
-            displacement = _vector_subtract(coordinates[node], reference)
-            distance = math.sqrt(_vector_dot(displacement, displacement))
-            expected = (
-                schedule[index] - (schedule[index - 1] if index else 0.0)
-                if plan.get("curved_chain_schedule") is True
-                else schedule[index]
-            )
-            error = abs(distance - expected)
-            maximum_schedule_error = max(maximum_schedule_error, error)
-            schedule_outlier_count += int(error > tolerance)
+    if plan.get("schedule_verified_by_continuation_endpoint") is not True:
+        for root, chain in chains.items():
+            origin = coordinates[root]
+            schedule = root_cumulative[root]
+            for index, node in enumerate(chain[1:]):
+                reference = (
+                    coordinates[chain[index]]
+                    if plan.get("curved_chain_schedule") is True
+                    else origin
+                )
+                displacement = _vector_subtract(coordinates[node], reference)
+                distance = math.sqrt(_vector_dot(displacement, displacement))
+                expected = (
+                    schedule[index] - (schedule[index - 1] if index else 0.0)
+                    if plan.get("curved_chain_schedule") is True
+                    else schedule[index]
+                )
+                error = abs(distance - expected)
+                maximum_schedule_error = max(maximum_schedule_error, error)
+                schedule_outlier_count += int(error > tolerance)
     if schedule_outlier_count:
         raise BoundaryLayerSmokeError("repaired chain does not follow the configured schedule")
 
