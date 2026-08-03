@@ -14372,6 +14372,25 @@ class RealProjectBoundaryLayerStrategy:
                 for tag in sorted(prism_boundary_surfaces - core_boundary_surfaces)
                 if (records := _element_records_from_gmsh(gmsh, 2, tag))
             }
+            core_boundary_curves = {
+                abs(int(curve))
+                for surface in core_boundary_surfaces
+                for _dim, curve in gmsh.model.getBoundary(
+                    [(2, surface)], combined=False, oriented=True, recursive=False
+                )
+            }
+            prism_boundary_curves = {
+                abs(int(curve))
+                for surface in prism_boundary_surfaces
+                for _dim, curve in gmsh.model.getBoundary(
+                    [(2, surface)], combined=False, oriented=True, recursive=False
+                )
+            }
+            curve_snapshots = {
+                tag: records
+                for tag in sorted(prism_boundary_curves - core_boundary_curves)
+                if (records := _element_records_from_gmsh(gmsh, 1, tag))
+            }
             for raw_tag in prism_by_wall.values():
                 tag = int(raw_tag)
                 records = _element_records_from_gmsh(gmsh, 3, tag)
@@ -14408,6 +14427,32 @@ class RealProjectBoundaryLayerStrategy:
                 gmsh.option.setNumber("Mesh.MeshOnlyEmpty", 0)
             prism_type = int(gmsh.model.mesh.getElementType("prism", 1))
             current_nodes = set(_nodes_from_gmsh(gmsh))
+            current_curves = {int(tag) for _dim, tag in gmsh.model.getEntities(1)}
+            for tag, records in curve_snapshots.items():
+                if tag in current_curves:
+                    gmsh.model.mesh.clear([(1, tag)])
+                else:
+                    gmsh.model.addDiscreteEntity(1, tag=tag)
+                required_nodes = {
+                    int(node) for record in records for node in record["nodes"]
+                }
+                nodes = sorted(required_nodes - current_nodes)
+                if nodes:
+                    gmsh.model.mesh.addNodes(
+                        1, tag, nodes,
+                        [value for node in nodes for value in all_coordinates[node]],
+                    )
+                    current_nodes.update(nodes)
+                by_type: dict[int, list[dict[str, Any]]] = defaultdict(list)
+                for record in records:
+                    by_type[int(record["element_type"])].append(record)
+                for element_type, typed_records in sorted(by_type.items()):
+                    gmsh.model.mesh.addElementsByType(
+                        tag,
+                        element_type,
+                        [int(record["tag"]) for record in typed_records],
+                        [int(node) for record in typed_records for node in record["nodes"]],
+                    )
             current_surfaces = {int(tag) for _dim, tag in gmsh.model.getEntities(2)}
             for tag, records in surface_snapshots.items():
                 if tag in current_surfaces:
