@@ -13534,44 +13534,69 @@ class RealProjectBoundaryLayerStrategy:
         )
         generated: dict[int, dict[str, Any]] = {}
         for core in sorted(shells):
-            temporary_model = f"production_core_hxt_{core}"
-            gmsh.model.add(temporary_model)
-            try:
-                surface = int(gmsh.model.addDiscreteEntity(2))
-                boundary_nodes = sorted(shell_nodes[core])
-                gmsh.model.mesh.addNodes(
-                    2,
-                    surface,
-                    boundary_nodes,
-                    [value for node in boundary_nodes for value in coordinates[node]],
+            boundary_nodes = sorted(shell_nodes[core])
+            orientation_attempts: list[dict[str, Any]] = []
+            for orientation in (1, -1):
+                temporary_model = f"production_core_hxt_{core}_{orientation}"
+                gmsh.model.add(temporary_model)
+                try:
+                    surface = int(gmsh.model.addDiscreteEntity(2))
+                    gmsh.model.mesh.addNodes(
+                        2,
+                        surface,
+                        boundary_nodes,
+                        [value for node in boundary_nodes for value in coordinates[node]],
+                    )
+                    triangle_type = int(gmsh.model.mesh.getElementType("triangle", 1))
+                    faces = [
+                        face if orientation == 1 else (face[0], face[2], face[1])
+                        for face in shells[core]
+                    ]
+                    gmsh.model.mesh.addElementsByType(
+                        surface,
+                        triangle_type,
+                        list(range(1, len(faces) + 1)),
+                        [node for face in faces for node in face],
+                    )
+                    volume = int(gmsh.model.addDiscreteEntity(3, boundary=[surface]))
+                    gmsh.option.setNumber("Mesh.Algorithm3D", 10)
+                    RealProjectBoundaryLayerStrategy._configure_production_volume_sizes(
+                        gmsh, config
+                    )
+                    gmsh.model.mesh.generate(3)
+                    gmsh.model.mesh.removeSizeCallback()
+                    records = _element_records_from_gmsh(gmsh, 3, volume)
+                    all_tet4 = bool(records) and all(
+                        record["type"] == "Tetrahedron 4" for record in records
+                    )
+                    orientation_attempts.append(
+                        {
+                            "orientation": orientation,
+                            "volume_element_count": len(records),
+                            "all_tetrahedron_4": all_tet4,
+                        }
+                    )
+                    if all_tet4:
+                        temp_coordinates = _nodes_from_gmsh(gmsh)
+                        generated[core] = {
+                            "records": [
+                                tuple(int(node) for node in record["nodes"])
+                                for record in records
+                            ],
+                            "coordinates": temp_coordinates,
+                            "boundary_nodes": set(boundary_nodes),
+                            "orientation": orientation,
+                            "orientation_attempts": orientation_attempts,
+                        }
+                finally:
+                    gmsh.model.remove()
+                    gmsh.model.setCurrent(main_model)
+                if core in generated:
+                    break
+            if core not in generated:
+                raise BoundaryLayerSmokeError(
+                    "HXT core output is not all-Tet4 for either shell orientation"
                 )
-                triangle_type = int(gmsh.model.mesh.getElementType("triangle", 1))
-                faces = shells[core]
-                gmsh.model.mesh.addElementsByType(
-                    surface,
-                    triangle_type,
-                    list(range(1, len(faces) + 1)),
-                    [node for face in faces for node in face],
-                )
-                volume = int(gmsh.model.addDiscreteEntity(3, boundary=[surface]))
-                gmsh.option.setNumber("Mesh.Algorithm3D", 10)
-                RealProjectBoundaryLayerStrategy._configure_production_volume_sizes(
-                    gmsh, config
-                )
-                gmsh.model.mesh.generate(3)
-                gmsh.model.mesh.removeSizeCallback()
-                records = _element_records_from_gmsh(gmsh, 3, volume)
-                if not records or any(record["type"] != "Tetrahedron 4" for record in records):
-                    raise BoundaryLayerSmokeError("HXT core output is not all-Tet4")
-                temp_coordinates = _nodes_from_gmsh(gmsh)
-                generated[core] = {
-                    "records": [tuple(int(node) for node in record["nodes"]) for record in records],
-                    "coordinates": temp_coordinates,
-                    "boundary_nodes": set(boundary_nodes),
-                }
-            finally:
-                gmsh.model.remove()
-                gmsh.model.setCurrent(main_model)
 
         gmsh.model.mesh.clear([(3, int(tag)) for tag in core_volume_tags])
         next_node = int(gmsh.model.mesh.getMaxNodeTag()) + 1
@@ -13610,6 +13635,8 @@ class RealProjectBoundaryLayerStrategy:
                     "core_volume_tag_audit": core,
                     "frozen_boundary_triangle_count": len(shells[core]),
                     "frozen_boundary_node_count": len(boundary_nodes),
+                    "accepted_shell_orientation": int(data["orientation"]),
+                    "orientation_attempts": list(data["orientation_attempts"]),
                     "generated_interior_node_count": len(interior),
                     "generated_tetrahedron_count": len(records),
                 }
