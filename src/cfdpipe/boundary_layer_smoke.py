@@ -12312,6 +12312,7 @@ def _apply_one_layer_orientation_cone_subdivision(
                     for root, values in root_cumulative_heights.items()
                 },
                 "height_tolerance_m": tolerance,
+                "curved_chain_schedule": True,
                 "source_prism_count": len(source_prisms),
                 "source_nonprism_type_counts": dict(
                     sorted(source_nonprism_type_counts.items())
@@ -13198,9 +13199,19 @@ def _verify_one_layer_orientation_cone_subdivision(
         origin = coordinates[root]
         schedule = root_cumulative[root]
         for index, node in enumerate(chain[1:]):
-            displacement = _vector_subtract(coordinates[node], origin)
+            reference = (
+                coordinates[chain[index]]
+                if plan.get("curved_chain_schedule") is True
+                else origin
+            )
+            displacement = _vector_subtract(coordinates[node], reference)
             distance = math.sqrt(_vector_dot(displacement, displacement))
-            error = abs(distance - schedule[index])
+            expected = (
+                schedule[index] - (schedule[index - 1] if index else 0.0)
+                if plan.get("curved_chain_schedule") is True
+                else schedule[index]
+            )
+            error = abs(distance - expected)
             maximum_schedule_error = max(maximum_schedule_error, error)
             schedule_outlier_count += int(error > tolerance)
     if schedule_outlier_count:
