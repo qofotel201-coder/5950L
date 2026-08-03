@@ -13494,6 +13494,7 @@ class RealProjectBoundaryLayerStrategy:
             raise BoundaryLayerSmokeError("production core remesh has no current model")
         initial_core_count = 0
         shells: dict[int, list[tuple[int, int, int]]] = {}
+        shell_components: dict[int, list[list[tuple[int, int, int]]]] = {}
         shell_nodes: dict[int, set[int]] = {}
         for raw_core in core_volume_tags:
             core = int(raw_core)
@@ -13528,6 +13529,29 @@ class RealProjectBoundaryLayerStrategy:
                 raise BoundaryLayerSmokeError("production core shell has duplicate faces")
             shells[core] = triangles
             shell_nodes[core] = {node for face in triangles for node in face}
+            edge_to_faces: dict[tuple[int, int], list[int]] = defaultdict(list)
+            for face_index, face in enumerate(triangles):
+                for left, right in ((face[0], face[1]), (face[1], face[2]), (face[2], face[0])):
+                    edge_to_faces[tuple(sorted((left, right)))].append(face_index)
+            if any(len(owners) != 2 for owners in edge_to_faces.values()):
+                raise BoundaryLayerSmokeError("production core shell is not closed")
+            adjacency: dict[int, set[int]] = defaultdict(set)
+            for owners in edge_to_faces.values():
+                adjacency[owners[0]].add(owners[1])
+                adjacency[owners[1]].add(owners[0])
+            remaining = set(range(len(triangles)))
+            components: list[list[tuple[int, int, int]]] = []
+            while remaining:
+                pending = [remaining.pop()]
+                indices: list[int] = []
+                while pending:
+                    current = pending.pop()
+                    indices.append(current)
+                    new = adjacency[current] & remaining
+                    remaining.difference_update(new)
+                    pending.extend(new)
+                components.append([triangles[index] for index in sorted(indices)])
+            shell_components[core] = components
         prism_count = sum(
             len(_element_records_from_gmsh(gmsh, 3, int(tag)))
             for tag in prism_volume_tags
@@ -13540,25 +13564,32 @@ class RealProjectBoundaryLayerStrategy:
                 temporary_model = f"production_core_hxt_{core}_{orientation}"
                 gmsh.model.add(temporary_model)
                 try:
-                    surface = int(gmsh.model.addDiscreteEntity(2))
-                    gmsh.model.mesh.addNodes(
-                        2,
-                        surface,
-                        boundary_nodes,
-                        [value for node in boundary_nodes for value in coordinates[node]],
-                    )
                     triangle_type = int(gmsh.model.mesh.getElementType("triangle", 1))
-                    faces = [
-                        face if orientation == 1 else (face[0], face[2], face[1])
-                        for face in shells[core]
-                    ]
-                    gmsh.model.mesh.addElementsByType(
-                        surface,
-                        triangle_type,
-                        list(range(1, len(faces) + 1)),
-                        [node for face in faces for node in face],
-                    )
-                    volume = int(gmsh.model.addDiscreteEntity(3, boundary=[surface]))
+                    surfaces: list[int] = []
+                    next_triangle = 1
+                    for component in shell_components[core]:
+                        surface = int(gmsh.model.addDiscreteEntity(2))
+                        surfaces.append(surface)
+                        component_nodes = sorted({node for face in component for node in face})
+                        gmsh.model.mesh.addNodes(
+                            2,
+                            surface,
+                            component_nodes,
+                            [value for node in component_nodes for value in coordinates[node]],
+                        )
+                        faces = [
+                            face if orientation == 1 else (face[0], face[2], face[1])
+                            for face in component
+                        ]
+                        tags = list(range(next_triangle, next_triangle + len(faces)))
+                        next_triangle += len(faces)
+                        gmsh.model.mesh.addElementsByType(
+                            surface,
+                            triangle_type,
+                            tags,
+                            [node for face in faces for node in face],
+                        )
+                    volume = int(gmsh.model.addDiscreteEntity(3, boundary=surfaces))
                     gmsh.option.setNumber("Mesh.Algorithm3D", 10)
                     RealProjectBoundaryLayerStrategy._configure_production_volume_sizes(
                         gmsh, config
@@ -13635,6 +13666,7 @@ class RealProjectBoundaryLayerStrategy:
                     "core_volume_tag_audit": core,
                     "frozen_boundary_triangle_count": len(shells[core]),
                     "frozen_boundary_node_count": len(boundary_nodes),
+                    "closed_shell_component_count": len(shell_components[core]),
                     "accepted_shell_orientation": int(data["orientation"]),
                     "orientation_attempts": list(data["orientation_attempts"]),
                     "generated_interior_node_count": len(interior),
