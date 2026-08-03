@@ -1,5 +1,16 @@
 # PLAN
 
+## 本轮任务：合并首次公开发布 PR
+
+状态：进行中；用户已明确确认合并公开仓库 `qofotel201-coder/5950L` 的 PR #1。当前 PR 为 `MERGEABLE/CLEAN`，Python 3.12/3.13 checks 均成功且无审查线程。
+
+### 本轮目标与验收标准
+
+- 合并前再次确认本地分支干净、远端 head SHA 一致、PR base 为 `main`、仓库仍为 PUBLIC，且所有必需检查成功。
+- 只合并 PR #1，不 force-push、不覆盖远端历史、不上传被 `.gitignore` 隔离的 CAD、BREP、运行结果、本机工具路径或虚拟环境。
+- 将草稿 PR 明确转为 ready 后采用普通 merge commit 合并；合并后从 GitHub 读取 PR 状态、merge commit SHA 与远端 `main` SHA，要求完全一致。
+- 同步本地 `main`，把实际合并结果写回本节并运行短预检；本轮不调用 Gmsh、SU2、ParaView、MPI/GPU，不生成网格或运行 CFD。
+
 ## 本轮任务：首次公开 GitHub 发布
 
 状态：已完成；用户指定的 `qofotel201-coder/5950L` 已确认 PUBLIC，GitHub-ready 内容已在保留远端初始历史的前提下提交并推送到 `agent/github-ready-repro`，草稿 PR #1 已创建并指向 `main`，首次 GitHub Actions 离线门成功。
