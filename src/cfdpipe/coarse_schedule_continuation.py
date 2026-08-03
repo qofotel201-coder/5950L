@@ -1139,7 +1139,11 @@ def _validate_quality_snapshot(
         or counts["nonpositive_element_count"]
         > prism_inventory + core_inventory
     ):
-        raise CoarseScheduleContinuationError(f"{label} counts are inconsistent")
+        raise CoarseScheduleContinuationError(
+            f"{label} counts are inconsistent: counts={counts!r}, "
+            f"expected_prism_element_count={expected_prism_element_count!r}, "
+            f"expected_core_element_count={expected_core_element_count!r}"
+        )
     if (
         not isinstance(value.get("all_values_finite"), bool)
         or value["all_values_finite"] is not (counts["nonfinite_count"] == 0)
