@@ -2,7 +2,18 @@
 
 ## 本轮任务：发布 Linux 候选并完成 AutoDL L0/L1 实机验证
 
-状态：本地质量门 PASS，等待候选提交、推送与 AutoDL 固定提交 L0/L1 实机验证；未启动外部 CFD 工具，未传输私有输入。
+状态：本地与 AutoDL L0/L1 均已 PASS；证据已打包回传并通过 SHA-256 校验。Linux 仍为 `CANDIDATE_PENDING_REMOTE_VERIFICATION`，L2/L3 与外部 CFD 工具链尚未验证。
+
+### 最终状态
+
+- `LOCAL_LINUX_L0_L1 = PASS`
+- `REMOTE_AUTODL_L0_L1 = PASS`
+- `LINUX_L2_L3 = PENDING`
+- `REMOTE_CFD_TOOLCHAIN = NOT_INSTALLED`
+- `PRIVATE_INPUTS = NOT_TRANSFERRED`
+- `PILOT_MESH_REPAIR = HOLD`
+- `RANS = HOLD`
+- `PRODUCTION_CFD = HOLD`
 
 ### 目标与验收标准
 
@@ -21,6 +32,18 @@
 - 新增回归后，shell `bash -n` PASS，仓库预检35/35 PASS，CAD-free 209/209 PASS，Linux专项9/9 PASS，`compileall` PASS，`git diff --check` PASS。
 - 全新本地证据目录 `runs/reproducibility/linux_l0_l1_local_20260803T095505Z_20758/` 的四步返回码均为0，`summary.json` 为PASS；除unittest正常进度所在的CAD-free stderr外，其余stderr均为空。
 - 提交候选不包含未跟踪的旧 readiness 报告；这些旧报告含历史机器标识和个人路径，只在本地保留，不进入公开 Git 历史。候选内容未包含私钥、密码、令牌、CAD、网格、restart、VTU、`runs/` 或 `config/tools.json`。
+- 初次 AutoDL 运行 `linux_l0_l1_20260803T102113Z` 按失败闭合保留并回传：预检返回0，CAD-free因测试夹具写死 `/usr/bin/env python3` 返回1；AutoDL只提供合同指定的绝对Python路径。最小修复将夹具改为Bash参数捕获，不改变产品代码或质量门；完整本地门再次PASS后提交并推送。
+- 修复提交 `0dbce7921f274d510d176812e21c41e82e2f7eef` 在 AutoDL 干净detach工作区复验。环境报告为预期 `INCOMPLETE`，没有误报PASS；L0/L1的 `repository_preflight`、`cad_free_tests`、`compileall`、`git_diff_check` 四步返回码全部为0，overall为PASS。
+- PASS run为 `/root/autodl-tmp/transfer/linux_l0_l1_20260803T102312Z`；环境报告为同目录前缀的 `_environment.json`。证据包 `linux_l0_l1_20260803T102312Z.tar.gz` 已下载至 `remote_evidence/linux_l0_l1_20260803T102312Z/`，远端与本机SHA-256均为 `885b845c3b5f05ff95eab915a5627b17cae4e3b098ff97e310662f6c5681f989`，本机解包后再次解析summary为PASS。
+- 本阶段没有安装或启动Gmsh、SU2、MPI、pvbatch或CUDA，没有传输STEP/BREP，没有运行网格、Euler、RANS或后处理；marker、工况、CAD哈希、边界条件和网格质量阈值均未修改。
+
+### 下一阶段唯一入口
+
+```bash
+cd /root/autodl-tmp/5950L && CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python bash scripts/repro/bootstrap_linux.sh --dry-run
+```
+
+该命令只做L2/L3部署前检查并打印受哈希约束的依赖建议，不安装或启动外部CFD工具。任何实际工具部署仍需作为下一独立质量门执行。
 
 ## 本轮任务：修复 Linux 环境探测误报
 
