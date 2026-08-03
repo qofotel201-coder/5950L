@@ -14331,14 +14331,10 @@ class RealProjectBoundaryLayerStrategy:
                 )
             }
             surface_snapshots = {
-                tag: _element_records_from_gmsh(gmsh, 2, tag)
+                tag: records
                 for tag in sorted(prism_boundary_surfaces - core_boundary_surfaces)
+                if (records := _element_records_from_gmsh(gmsh, 2, tag))
             }
-            if any(
-                not records or any(record["type"] != "Triangle 3" for record in records)
-                for records in surface_snapshots.values()
-            ):
-                raise BoundaryLayerSmokeError("production prism surface snapshot is incomplete")
             for raw_tag in prism_by_wall.values():
                 tag = int(raw_tag)
                 records = _element_records_from_gmsh(gmsh, 3, tag)
@@ -14369,7 +14365,6 @@ class RealProjectBoundaryLayerStrategy:
                 gmsh.option.setNumber("Mesh.MeshOnlyEmpty", 0)
             prism_type = int(gmsh.model.mesh.getElementType("prism", 1))
             current_nodes = set(_nodes_from_gmsh(gmsh))
-            triangle_type = int(gmsh.model.mesh.getElementType("triangle", 1))
             current_surfaces = {int(tag) for _dim, tag in gmsh.model.getEntities(2)}
             for tag, records in surface_snapshots.items():
                 if tag in current_surfaces:
@@ -14386,12 +14381,20 @@ class RealProjectBoundaryLayerStrategy:
                         [value for node in nodes for value in all_coordinates[node]],
                     )
                     current_nodes.update(nodes)
-                gmsh.model.mesh.addElementsByType(
-                    tag,
-                    triangle_type,
-                    [int(record["tag"]) for record in records],
-                    [int(node) for record in records for node in record["nodes"]],
-                )
+                by_type: dict[int, list[dict[str, Any]]] = defaultdict(list)
+                for record in records:
+                    by_type[int(record["element_type"])].append(record)
+                for element_type, typed_records in sorted(by_type.items()):
+                    gmsh.model.mesh.addElementsByType(
+                        tag,
+                        element_type,
+                        [int(record["tag"]) for record in typed_records],
+                        [
+                            int(node)
+                            for record in typed_records
+                            for node in record["nodes"]
+                        ],
+                    )
             for tag in sorted(prism_snapshots):
                 gmsh.model.addDiscreteEntity(3, tag=tag)
                 snapshot = prism_snapshots[tag]
