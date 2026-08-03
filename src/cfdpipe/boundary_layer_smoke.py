@@ -13599,6 +13599,31 @@ class RealProjectBoundaryLayerStrategy:
                 loop = int(gmsh.model.geo.addSurfaceLoop(mapped))
                 volume_map[core] = int(gmsh.model.geo.addVolume([loop]))
             gmsh.model.geo.synchronize()
+            # Synchronizing the newly constructed GEO volumes clears the mesh
+            # attached to their discrete surface entities.  Reinstall the
+            # exact frozen triangles after synchronization so generate(3)
+            # consumes them instead of attempting to remesh the surfaces.
+            gmsh.model.mesh.clear(
+                [(2, surface) for surface in sorted(surface_map.values())]
+            )
+            classified_nodes.clear()
+            next_triangle = 1
+            for original_surface in sorted(surface_faces):
+                surface = surface_map[original_surface]
+                faces = surface_faces[original_surface]
+                nodes = sorted({node for face in faces for node in face} - classified_nodes)
+                classified_nodes.update(nodes)
+                if nodes:
+                    gmsh.model.mesh.addNodes(
+                        2, surface, nodes,
+                        [value for node in nodes for value in coordinates[node]],
+                    )
+                tags = list(range(next_triangle, next_triangle + len(faces)))
+                next_triangle += len(faces)
+                gmsh.model.mesh.addElementsByType(
+                    surface, triangle_type, tags,
+                    [node for face in faces for node in face],
+                )
             gmsh.option.setNumber("Mesh.Algorithm3D", 10)
             RealProjectBoundaryLayerStrategy._configure_production_volume_sizes(gmsh, config)
             gmsh.model.mesh.generate(3)
