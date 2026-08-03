@@ -14340,10 +14340,15 @@ class RealProjectBoundaryLayerStrategy:
                 gmsh.model.mesh.removeSizeCallback()
                 gmsh.option.setNumber("Mesh.MeshOnlyEmpty", 0)
             prism_type = int(gmsh.model.mesh.getElementType("prism", 1))
+            current_nodes = set(_nodes_from_gmsh(gmsh))
             for tag in sorted(prism_snapshots):
                 gmsh.model.addDiscreteEntity(3, tag=tag)
                 snapshot = prism_snapshots[tag]
-                nodes = snapshot["nodes"]
+                records = snapshot["records"]
+                required_nodes = {
+                    int(node) for record in records for node in record["nodes"]
+                }
+                nodes = sorted(required_nodes - current_nodes)
                 if nodes:
                     gmsh.model.mesh.addNodes(
                         3,
@@ -14351,7 +14356,7 @@ class RealProjectBoundaryLayerStrategy:
                         nodes,
                         [value for node in nodes for value in all_coordinates[node]],
                     )
-                records = snapshot["records"]
+                    current_nodes.update(nodes)
                 gmsh.model.mesh.addElementsByType(
                     tag,
                     prism_type,
