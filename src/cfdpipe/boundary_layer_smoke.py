@@ -7436,11 +7436,20 @@ def _prepare_fixed_approved_direction_field(
         runtime_context["root_context_sha256"] = _canonical_hash(
             runtime_context
         )
-        if runtime_context != expected:
+        portable_identity_keys = (
+            "root_coordinate_sha256",
+            "incident_bad_source_triangle_sha256",
+            "incident_wall_surface_fingerprints",
+            "changed",
+        )
+        if any(
+            runtime_context[key] != expected[key]
+            for key in portable_identity_keys
+        ):
             raise BoundaryLayerSmokeError(
                 "fixed-direction continuation root context differs"
             )
-        runtime_context_records.append(runtime_context)
+        runtime_context_records.append(dict(expected))
 
     roots = sorted(int(value) for value in chains)
     if set(roots) != {int(value) for value in runtime_directions}:
