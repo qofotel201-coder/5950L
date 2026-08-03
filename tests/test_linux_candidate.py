@@ -33,13 +33,19 @@ class LinuxCandidateTests(unittest.TestCase):
     def test_launcher_forwards_argument_array_with_spaces(self) -> None:
         with tempfile.TemporaryDirectory(prefix="cfdpipe linux ") as temporary:
             fake_python = Path(temporary) / "python shim"
-            capture = Path(temporary) / "argv.json"
-            fake_python.write_text("#!/usr/bin/env python3\nimport json,os,sys\nopen(os.environ['CAPTURE'],'w').write(json.dumps(sys.argv[1:]))\n", encoding="utf-8")
+            capture = Path(temporary) / "argv.txt"
+            fake_python.write_text(
+                "#!/usr/bin/env bash\nprintf '%s\\n' \"$@\" > \"$CAPTURE\"\n",
+                encoding="utf-8",
+            )
             fake_python.chmod(0o700)
             env = dict(os.environ, CFD_PYTHON=str(fake_python), CAPTURE=str(capture))
             completed = subprocess.run([str(ROOT / "scripts/cfdpipe.sh"), "tools", "value with spaces"], env=env, capture_output=True, text=True, check=False)
             self.assertEqual(completed.returncode, 0, completed.stderr)
-            self.assertEqual(json.loads(capture.read_text()), ["-m", "cfdpipe", "tools", "value with spaces"])
+            self.assertEqual(
+                capture.read_text(encoding="utf-8").splitlines(),
+                ["-m", "cfdpipe", "tools", "value with spaces"],
+            )
 
     def test_native_absolute_tool_and_windows_paths_policy(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
