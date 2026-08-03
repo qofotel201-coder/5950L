@@ -2378,7 +2378,7 @@ def _load_direction_audit_attestation(
     try:
         validated_discovery = validate_component_direction_discovery(
             discovery,
-            expected_direction_endpoint=expected_audit_strategy[
+            expected_direction_endpoint=strategy[
                 "owner_free_direction_endpoint"
             ],
         )
