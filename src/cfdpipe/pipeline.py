@@ -3768,7 +3768,10 @@ def build_real_connection_report(
             "physical_interpretation": False,
             "connection_only": True,
             "production_eligible": False,
-            "rear_outlet_boundary_frozen": False,
+            "rear_outlet_boundary_frozen": bool(
+                isinstance(state.get("pilot_contract"), Mapping)
+                and state["pilot_contract"].get("boundary_mode_frozen") is True
+            ),
         },
         "resolved_tools": dict(state.get("resolved_tools", {})),
         "pilot_contract": state.get("pilot_contract"),

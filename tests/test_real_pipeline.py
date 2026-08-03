@@ -551,6 +551,25 @@ class RealConnectionInputGateTests(unittest.TestCase):
 
         self.addCleanup(restore_write_permission)
 
+    def test_report_exposes_case_specific_frozen_boundary(self) -> None:
+        state = {
+            "links": {
+                key: {"status": "PASS", "evidence": [{"current": True}]}
+                for key in REPORT_KEYS
+            },
+            "pilot_contract": {"boundary_mode_frozen": True},
+        }
+        report = pipeline_module.build_real_connection_report(
+            self.root,
+            state,
+            started_at="2026-08-03T00:00:00Z",
+            ended_at="2026-08-03T00:00:01Z",
+        )
+
+        self.assertTrue(
+            report["metadata"]["constraints"]["rear_outlet_boundary_frozen"]
+        )
+
     def test_valid_sources_preserve_configured_case_and_marker_roles(self) -> None:
         self._write_read_only_step()
         _write_markers(self.markers)
@@ -1240,6 +1259,11 @@ class RealConnectionInputGateTests(unittest.TestCase):
         for key in REPORT_KEYS:
             self.assertEqual(result.report[key]["status"], "PASS")
         self.assertFalse(result.report["metadata"]["production_eligible"])
+        self.assertFalse(
+            result.report["metadata"]["constraints"][
+                "rear_outlet_boundary_frozen"
+            ]
+        )
         self.assertEqual(
             result.report["metadata"]["project_readiness"],
             "BLOCKED_PENDING_PHYSICAL_BOUNDARY_VALIDATION",
