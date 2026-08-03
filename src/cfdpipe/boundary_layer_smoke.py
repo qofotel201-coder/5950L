@@ -14375,6 +14375,11 @@ class RealProjectBoundaryLayerStrategy:
                     recursive=False,
                 )
             }
+            interface_surface_snapshots = {
+                tag: records
+                for tag in sorted(prism_boundary_surfaces & core_boundary_surfaces)
+                if (records := _element_records_from_gmsh(gmsh, 2, tag))
+            }
             surface_snapshots = {
                 tag: records
                 for tag in sorted(prism_boundary_surfaces - core_boundary_surfaces)
@@ -14419,6 +14424,41 @@ class RealProjectBoundaryLayerStrategy:
             )
             gmsh.model.geo.synchronize()
             gmsh.model.mesh.clear([(3, core1_tag), (3, core2_tag)])
+            # Clearing the two core volumes can also discard their orphaned
+            # surface discretization after the temporary prism entities are
+            # removed.  Restore the frozen prism/core top triangles before the
+            # core fill so HXT consumes exactly the Pilot node identities.
+            current_nodes_before_core = set(_nodes_from_gmsh(gmsh))
+            for tag, records in interface_surface_snapshots.items():
+                existing = _element_records_from_gmsh(gmsh, 2, tag)
+                if existing == records:
+                    continue
+                if existing:
+                    gmsh.model.mesh.clear([(2, tag)])
+                required_nodes = {
+                    int(node) for record in records for node in record["nodes"]
+                }
+                nodes = sorted(required_nodes - current_nodes_before_core)
+                if nodes:
+                    gmsh.model.mesh.addNodes(
+                        2, tag, nodes,
+                        [value for node in nodes for value in all_coordinates[node]],
+                    )
+                    current_nodes_before_core.update(nodes)
+                by_type: dict[int, list[dict[str, Any]]] = defaultdict(list)
+                for record in records:
+                    by_type[int(record["element_type"])].append(record)
+                for element_type, typed_records in sorted(by_type.items()):
+                    gmsh.model.mesh.addElementsByType(
+                        tag,
+                        element_type,
+                        [int(record["tag"]) for record in typed_records],
+                        [
+                            int(node)
+                            for record in typed_records
+                            for node in record["nodes"]
+                        ],
+                    )
             gmsh.option.setNumber("Mesh.MeshOnlyEmpty", 1)
             gmsh.option.setNumber("Mesh.FirstNodeTag", maximum_node_tag + 1)
             gmsh.option.setNumber("Mesh.FirstElementTag", maximum_element_tag + 1)
