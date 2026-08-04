@@ -1,6 +1,6 @@
 {
   "schema": "cfdpipe.production_mesh_family_plan.v1",
-  "status": "COARSE_REGIONS_FROZEN_MEDIUM_AUTHORIZED",
+  "status": "COARSE_MEDIUM_SYSTEMATIC_REFINEMENT_PASS_FINE_AUTHORIZED",
   "mesh_family": {
     "geometry_source": "geometry/derived/model1_shared_topology/model1_shared_topology.brep",
     "geometry_sha256": "13698e9afb96ac21205c31d8a23f718adece802fda51ed1a67857ba73379e121",
@@ -13,16 +13,19 @@
     "physical_extents_identical_across_levels": true,
     "actual_counts_required_for_grid_ratio_and_gci": true,
     "sizing_implementation": {
-      "dimension_3_only": true,
+      "dimension_3_only": false,
       "region_composition": "minimum",
       "transition_interpolation": "linear_distance_to_box",
-      "wall_surface_triangulation_preserved": true
+      "wall_surface_triangulation_preserved": false,
+      "medium_wall_refinement": "deterministic_full-column_centroid_subdivision",
+      "medium_wall_area_equivalent_size_ratio": 0.7939327401603632,
+      "normal_schedule_preserved": true
     }
   },
   "levels": {
     "coarse": {"target_cells": 5000000, "minimum_cells": 4750000, "maximum_cells": 5250000, "build_authorized": true},
     "medium": {"target_cells": 10000000, "minimum_cells": 8000000, "maximum_cells": 12000000, "build_authorized": true},
-    "fine": {"target_cells": 20000000, "build_authorized": false}
+    "fine": {"target_cells": 20000000, "minimum_cells": 16000000, "maximum_cells": 24000000, "build_authorized": true, "authorization_basis": "reports/coarse_medium_systematic_refinement_audit.json"}
   },
   "physical_regions": [
     {
@@ -88,8 +91,18 @@
       "actual_3d_elements": 4965647,
       "actual_nodes": 935410,
       "status": "PASS"
+    },
+    "accepted_medium_result": {
+      "run_id": "production_medium_systematic_20260805T111500Z_s102",
+      "generator_git_sha": "2166ab17090596fc5509164f0d935bf0fb6b234c",
+      "input_volume_scale": 1.02,
+      "actual_3d_elements": 9582917,
+      "actual_nodes": 1768827,
+      "prism_columns": 7412,
+      "boundary_layer_count": 60,
+      "status": "PASS"
     }
   },
-  "unique_execution_entry": "See reports/medium_mesh_execution_authorization.json; its machine-bound command contains this plan's final SHA-256 and requires a unique output directory.",
-  "next_level_gate": "Generate and strictly accept the authorized medium mesh before any RANS or fine-mesh authorization"
+  "unique_execution_entry": "See reports/fine_mesh_execution_authorization.json; its command requires a unique output directory and may only generate the approximately 20-million-cell fine mesh.",
+  "next_level_gate": "Generate and strictly accept the authorized fine mesh before any production RANS"
 }

@@ -59,7 +59,7 @@ def _canonical_hash(value: Mapping[str, Any]) -> str:
 
 def _level_contract(plan: Mapping[str, Any], mesh_level: str) -> dict[str, Any]:
     levels = plan.get("levels")
-    if mesh_level not in {"coarse", "medium"} or not isinstance(levels, Mapping):
+    if mesh_level not in {"coarse", "medium", "fine"} or not isinstance(levels, Mapping):
         raise ValueError("production mesh level is invalid")
     raw = levels.get(mesh_level)
     if not isinstance(raw, Mapping) or raw.get("build_authorized") is not True:
@@ -88,6 +88,7 @@ def _regions(
             "CALIBRATION",
             "FROZEN",
             "COARSE_REGIONS_FROZEN_MEDIUM_AUTHORIZED",
+            "COARSE_MEDIUM_SYSTEMATIC_REFINEMENT_PASS_FINE_AUTHORIZED",
         }
         or not isinstance(family, Mapping)
         or family.get("boundary_layer_count") != 60
@@ -98,7 +99,7 @@ def _regions(
     ):
         raise ValueError("production mesh family plan is invalid")
     _level_contract(plan, mesh_level)
-    level_factor = {"coarse": 1.0, "medium": 0.794}[mesh_level]
+    level_factor = {"coarse": 1.0, "medium": 0.794, "fine": 0.63}[mesh_level]
     result = []
     for item in raw:
         bounds = item.get("bounds_m")
@@ -134,7 +135,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--family-plan-sha256", required=True)
     parser.add_argument("--volume-scale", type=float, required=True)
     parser.add_argument(
-        "--mesh-level", choices=("coarse", "medium"), default="coarse"
+        "--mesh-level", choices=("coarse", "medium", "fine"), default="coarse"
     )
     parser.add_argument("--output", type=Path, required=True)
     return parser
@@ -163,8 +164,8 @@ def main(argv: list[str] | None = None) -> int:
         maximum_3d_elements=target_range[1] + 250_000,
     )
     strategy_config.pop("normalized_config_sha256", None)
-    level_factor = {"coarse": 1.0, "medium": 0.794}[args.mesh_level]
-    if args.mesh_level == "medium":
+    level_factor = {"coarse": 1.0, "medium": 0.794, "fine": 0.63}[args.mesh_level]
+    if args.mesh_level in {"medium", "fine"}:
         strategy_config["production_tangential_size_ratio"] = level_factor
     strategy_config["production_mesh_level"] = args.mesh_level
     strategy_config["production_target_element_count"] = int(

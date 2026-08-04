@@ -1,8 +1,8 @@
 # Production mesh family plan
 
-本计划已冻结通过验收的生产粗网格分区，并单独授权生成中网格。粗网格目标为500万单元，合法范围475万至525万；中网格目标1000万、合法范围800万至1200万；细网格规划为2000万但仍未授权。本阶段审查本身不生成中网格。
+本计划已完成粗—中系统加密一致性审计并授权生成约2000万单元细网格。粗网格为4,965,647单元；新的系统加密中网格为9,582,917单元。细网格尚未生成，RANS继续禁止。
 
-Pilot 已审计通过的壁面 `h=0.4 m` 三角化、60层边界层、首层高度、增长率、ring-32 层高和局部方向修复全部保持不变。单元量校准只作用于棱柱顶面之后的四面体核心，不允许通过减少层数或重建壁面三角化改变冻结证据链。
+Pilot 已审计通过的60层边界层、首层高度、增长率、ring-32层高和局部方向修复全部保持不变。中网格以确定性的整柱质心细分增加壁面切向分辨率：壁面三角形/柱列由4,672增加至7,412，面积等效切向尺度比为`0.7939327402`；所有新柱仍为60层。
 
 四个物理区域为 farfield、transition、near_body_core 和 internal_passage。farfield 最疏，近体核心和内流道逐级加密；每个区域使用固定空间范围与正的过渡宽度，尺寸在边界外连续恢复。粗、中、细的物理范围保持不变，尺寸统一乘以 `1.000/0.794/0.630`。实际单元数允许在合同范围内浮动，网格尺度比和 GCI 必须使用实际单元数计算。
 
@@ -10,6 +10,8 @@ AutoDL 首轮 OCC/HXT 校准后继续按实际优化后单元数应用统一体�
 
 粗网格本体的 AutoDL 实测确认四面体特征尺度中位数依次为 farfield `0.0368541 m`、transition `0.0247716 m`、near-body `0.0164372 m`、internal-passage `0.0117414 m`；60层棱柱壁面法向厚度中位数为 `2.76986e-7 m`。因此“远场疏、近体核心密、内流道密、壁面法向密”同时得到尺寸场合同与实际网格证据支持。
 
-任何一级出现 Scaled Jacobian、体积、Jacobian、非有限质量、marker、共享接口或共形性失败，均禁止进入 RANS。中网格获准生成，但生成后必须独立通过全部质量门；细网格仍须另行授权。
+粗—中四区实测P50尺寸比为farfield `0.808263`、transition `0.807300`、near-body `0.808320`、internal-passage `0.798706`，均通过冻结目标`0.794±0.02`。中网格最小Scaled Jacobian为`0.0100982487`，全部失败计数为0，marker与470面共享接口关系保持一致。
 
-机器计划见 `reports/production_mesh_family_plan.json`，最终计划哈希绑定的唯一中网格入口见 `reports/medium_mesh_execution_authorization.json`。当前状态为 `COARSE_REGIONS_FROZEN_MEDIUM_AUTHORIZED`；不得自动生成细网格或启动 RANS。
+任何一级出现 Scaled Jacobian、体积、Jacobian、非有限质量、marker、共享接口或共形性失败，均禁止进入 RANS。约2000万细网格仅获生成授权，生成后仍必须独立通过全部质量门。
+
+机器计划见 `reports/production_mesh_family_plan.json`，审计见`reports/coarse_medium_systematic_refinement_audit.json`。当前状态为`COARSE_MEDIUM_SYSTEMATIC_REFINEMENT_PASS_FINE_AUTHORIZED`；本轮未生成细网格且不得启动RANS。

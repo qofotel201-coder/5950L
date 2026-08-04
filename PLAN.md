@@ -2,7 +2,24 @@
 
 ## 本轮任务：粗—中网格系统加密一致性审计与细网格授权门
 
-状态：进行中。对已验收粗、中网格本体使用同一只读算法测量 farfield、transition、near-body core、internal passage、壁面三角形与边界层尺度，验证实际系统加密而非仅核对配置；审计未通过时修正尺寸场并在全新目录重新生成、验收中网格，审计通过前不得授权或生成细网格。
+状态：已完成并通过。初始中网格仅加密体核心、壁面三角形与柱列不变，审计合法FAIL；随后以完整60层柱列质心细分修正壁面尺寸场，在全新目录重新生成9,582,917单元中网格。四区、壁面、内流道、近体、远场、边界层、marker/interface及同族判定全部PASS，约2000万细网格已获生成授权但本轮未生成。
+
+### 最终状态
+
+- `COARSE_MEDIUM_SYSTEMATIC_REFINEMENT = PASS`
+- `PRODUCTION_COARSE_MESH = PASS`
+- `PRODUCTION_MEDIUM_MESH = PASS`
+- `PRODUCTION_FINE_MESH = AUTHORIZED_NOT_BUILT`
+- `RANS = DIAGNOSTIC_L6_PASS`
+- `PRODUCTION_CFD = HOLD`
+
+### 审计结果
+
+- 四区中/粗Tet4特征尺度P50比分别为farfield `0.808263`、transition `0.807300`、near-body `0.808320`、internal-passage `0.798706`，均在冻结目标`0.794±0.02`内；中网格仍保持farfield最疏、internal-passage最密。
+- 壁面三角形/棱柱柱列由4,672增至7,412，面积等效切向尺寸比`0.7939327402`；Prism6由280,320增至444,720。44/48个稳定壁面成员增加柱列，4个不变成员限于冻结的`x>5.1 m`后盖排除区。
+- 60层、首层高度`2.7645771273320875e-7 m`和增长率`1.2`保持不变；中网格每根柱严格60层，实测法向P50比`1.004075`。
+- 中网格最小Scaled Jacobian `0.010098248712453189`；阈下、负体积、非正Jacobian、非有限质量均为0。marker无遗漏，共享接口仍为470面且区域对不变，Prism/Tet核心共形。
+- 正式中网格run为`production_medium_systematic_20260805T111500Z_s102`，MSH SHA-256=`037b073c23a7376d0876c3ff7cb23d369ca6ad69327b888b2bb502cf92834def`，SU2 SHA-256=`c16076e0c8cb5be13c5a94940567fb02fedbf6087489d4fbf64501d0c6ad2037`。
 
 ### 目标与验收标准
 

@@ -1,0 +1,76 @@
+{
+  "schema": "cfdpipe.coarse_medium_systematic_refinement_audit.v1",
+  "status": "PASS",
+  "git_sha": "2166ab17090596fc5509164f0d935bf0fb6b234c",
+  "target_size_ratio": 0.794,
+  "volume_ratio_absolute_tolerance": 0.02,
+  "wall_area_equivalent_ratio_absolute_tolerance": 0.005,
+  "coarse": {
+    "run_id": "production_coarse_occ_20260805T010000Z_s0918389",
+    "element_count_3d": 4965647,
+    "tetrahedron_count": 4685327,
+    "prism_count": 280320,
+    "prism_column_count": 4672,
+    "wall_triangle_count": 4672,
+    "mesh_msh_sha256": "68f6af4cec625c62ef60fe2a34ccdb5ca09630240c1b8967fb11e80112e00725"
+  },
+  "medium": {
+    "run_id": "production_medium_systematic_20260805T111500Z_s102",
+    "element_count_3d": 9582917,
+    "tetrahedron_count": 9138197,
+    "prism_count": 444720,
+    "prism_column_count": 7412,
+    "wall_triangle_count": 7412,
+    "mesh_msh_sha256": "037b073c23a7376d0876c3ff7cb23d369ca6ad69327b888b2bb502cf92834def",
+    "mesh_su2_sha256": "c16076e0c8cb5be13c5a94940567fb02fedbf6087489d4fbf64501d0c6ad2037"
+  },
+  "tetra_characteristic_length_p50_m": {
+    "farfield": {"coarse": 0.036854133859121424, "medium": 0.0297878413529915, "ratio": 0.8082632322023486, "coarse_samples": 896076, "medium_samples": 1705169, "status": "PASS"},
+    "transition": {"coarse": 0.024771585496251365, "medium": 0.019998092236852876, "ratio": 0.8072996474076779, "coarse_samples": 1365591, "medium_samples": 2618578, "status": "PASS"},
+    "near_body_core": {"coarse": 0.016437234221261213, "medium": 0.01328654773101404, "ratio": 0.8083201560654392, "coarse_samples": 1773406, "medium_samples": 3410687, "status": "PASS"},
+    "internal_passage": {"coarse": 0.01174139015417612, "medium": 0.009377920976361994, "ratio": 0.798706188383196, "coarse_samples": 650254, "medium_samples": 1403763, "status": "PASS"}
+  },
+  "wall_tangential": {
+    "method": "sqrt(coarse_wall_triangle_count / medium_wall_triangle_count)",
+    "realized_area_equivalent_size_ratio": 0.7939327401603632,
+    "prism_tangential_edge_p50_ratio": 0.9199588295590132,
+    "wall_surfaces_with_more_columns": 44,
+    "wall_surfaces_unchanged": 4,
+    "unchanged_scope": "frozen rear-cap exclusion x>5.1 m",
+    "status": "PASS"
+  },
+  "boundary_layer_normal": {
+    "layer_count_coarse": 60,
+    "layer_count_medium_minimum": 60,
+    "layer_count_medium_maximum": 60,
+    "first_layer_height_m": 2.7645771273320875e-07,
+    "growth_ratio": 1.2,
+    "measured_normal_p50_ratio": 1.004074939438058,
+    "status": "PASS"
+  },
+  "quality_and_topology": {
+    "medium_minimum_scaled_jacobian": 0.010098248712453189,
+    "below_threshold_count": 0,
+    "negative_volume_count": 0,
+    "nonpositive_jacobian_count": 0,
+    "nonfinite_count": 0,
+    "shared_interface_faces_coarse": 470,
+    "shared_interface_faces_medium": 470,
+    "shared_interface_region_pairs_unchanged": true,
+    "marker_omission_count": 0,
+    "prism_tetra_core_conformal": true,
+    "status": "PASS"
+  },
+  "checks": {
+    "four_volume_region_ratios": "PASS",
+    "wall_tangential_refinement": "PASS",
+    "internal_passage_refinement": "PASS",
+    "near_body_core_refinement": "PASS",
+    "farfield_remains_coarsest": "PASS",
+    "sixty_layers_first_height_growth_preserved": "PASS",
+    "markers_and_shared_interface_preserved": "PASS",
+    "coarse_medium_same_systematic_family": "PASS"
+  },
+  "fine_mesh_authorization": "AUTHORIZED_NOT_BUILT",
+  "rans_allowed": false
+}
