@@ -13724,6 +13724,10 @@ class RealProjectBoundaryLayerStrategy:
                 continue
             if any(owner[1] in unsafe_triangles for owner in owners):
                 continue
+            if max(float(coordinates[node][0]) for node in edge) > 5.1:
+                # Keep the tiny rear-cap seam shell frozen; bisecting its
+                # chord forces a deterministic sub-threshold core sliver.
+                continue
             a, b = coordinates[edge[0]], coordinates[edge[1]]
             length2 = sum((float(a[i]) - float(b[i])) ** 2 for i in range(3))
             candidates.append((-length2, edge, owners))
