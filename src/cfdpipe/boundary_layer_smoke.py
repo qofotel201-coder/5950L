@@ -13735,7 +13735,8 @@ class RealProjectBoundaryLayerStrategy:
                 # A CAD-surface seam owns curve/lateral topology that is not
                 # part of this interior-only refinement contract.
                 continue
-            if any(node in seam_nodes for owner in owners for node in owner[1]):
+            owner_nodes = {node for owner in owners for node in owner[1]}
+            if len(owner_nodes & seam_nodes) >= 2:
                 continue
             if any(owner[1] in unsafe_triangles for owner in owners):
                 continue
