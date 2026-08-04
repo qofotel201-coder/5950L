@@ -13695,6 +13695,12 @@ class RealProjectBoundaryLayerStrategy:
         target_added = round(triangle_count * (ratio ** -2 - 1.0))
         target_pairs = max(1, target_added // 2)
         selected: dict[tuple[int, int, int], tuple[int, int]] = {}
+        seam_nodes = {
+            int(node)
+            for edge, owners in edge_owners.items()
+            if len(owners) != 2 or owners[0][0] != owners[1][0]
+            for node in edge
+        }
         unsafe_triangles: set[tuple[int, int, int]] = set()
         layer_successor: dict[tuple[int, int, int], tuple[tuple[int, int, int], float]] = {}
         for raw_volume in prism_volume_tags:
@@ -13728,6 +13734,8 @@ class RealProjectBoundaryLayerStrategy:
             if owners[0][0] != owners[1][0]:
                 # A CAD-surface seam owns curve/lateral topology that is not
                 # part of this interior-only refinement contract.
+                continue
+            if any(node in seam_nodes for owner in owners for node in owner[1]):
                 continue
             if any(owner[1] in unsafe_triangles for owner in owners):
                 continue
