@@ -65,8 +65,8 @@ def main():
     args = parser.parse_args()
     mesh = args.mesh.expanduser().resolve(strict=True)
     output = args.output_directory.expanduser().resolve(strict=False)
-    if mesh.suffix.lower() != ".msh" or not mesh.is_file() or mesh.is_symlink():
-        raise ValueError("mesh input must be a regular non-link .msh file")
+    if mesh.suffix.lower() not in {".msh", ".vtk"} or not mesh.is_file() or mesh.is_symlink():
+        raise ValueError("mesh input must be a regular non-link .msh or .vtk file")
     if output.exists():
         raise ValueError("render output directory already exists")
     output.mkdir(parents=True)
@@ -92,12 +92,16 @@ def main():
         if source is None:
             raise RuntimeError("ParaView could not open the Gmsh MSH")
         simple.UpdatePipeline(proxy=source)
-        merge_constructor = getattr(simple, "MergeBlocks", None)
-        if merge_constructor is None:
-            raise RuntimeError("ParaView provides no MergeBlocks filter for Gmsh data")
-        merged = merge_constructor(Input=source)
-        simple.UpdatePipeline(proxy=merged)
-        information = merged.GetDataInformation()
+        information = source.GetDataInformation()
+        render_source = source
+        if int(information.GetNumberOfPoints()) <= 0:
+            merge_constructor = getattr(simple, "MergeBlocks", None)
+            if merge_constructor is None:
+                raise RuntimeError("ParaView provides no MergeBlocks filter for composite data")
+            merged = merge_constructor(Input=source)
+            simple.UpdatePipeline(proxy=merged)
+            information = merged.GetDataInformation()
+            render_source = merged
         bounds = [float(value) for value in information.GetBounds()]
         if len(bounds) != 6 or not all(math.isfinite(value) for value in bounds):
             raise RuntimeError("ParaView returned invalid mesh bounds")
@@ -115,15 +119,15 @@ def main():
         )
         view = simple.CreateView("RenderView")
         view.Background = [1.0, 1.0, 1.0]
-        display = simple.Show(merged, view)
+        display = simple.Show(render_source, view)
         display.Representation = "Surface With Edges"
         display.DiffuseColor = [0.72, 0.78, 0.88]
         display.EdgeColor = [0.08, 0.08, 0.08]
         _camera(view, bounds, [1.0, -1.0, 0.7], [0.0, 0.0, 1.0])
         manifest["images"].append(_save(view, output / "medium_mesh_isometric.png"))
-        simple.Hide(merged, view)
+        simple.Hide(render_source, view)
 
-        slice_proxy = simple.Slice(Input=merged)
+        slice_proxy = simple.Slice(Input=render_source)
         slice_proxy.SliceType = "Plane"
         slice_proxy.SliceType.Origin = [
             0.5 * (bounds[0] + bounds[1]),
