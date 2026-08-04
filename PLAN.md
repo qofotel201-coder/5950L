@@ -1,5 +1,18 @@
 # PLAN
 
+## 本轮任务：AutoDL 生产中网格生成、全质量验收与网格图回传
+
+状态：进行中。使用已冻结并获授权的粗网格分区、60层边界层和 Pilot 局部修复参数，在 AutoDL 唯一新目录实际生成目标约1000万单元的中网格；本轮只进行网格生成、质量/SU2只读检查和 pvbatch 无界面网格可视化，不运行正式 RANS、不生成细网格。
+
+### 目标与验收标准
+
+- 完全使用 `reports/medium_mesh_execution_authorization.json` 的唯一入口，只展开新的 run ID；绑定最终 family-plan SHA-256、显式 Pilot manifest 及其 SHA-256，不搜索或复用旧网格。
+- 三维单元数必须为800万至1200万、目标约1000万；保持相同 BREP、marker、四区物理范围与过渡宽度，四类体尺寸统一使用 `0.794` 系数。
+- 冻结60层、首层高度、增长率、壁面三角化和局部修复参数；最小 Prism Scaled Jacobian `>=0.01`，阈下、负体积、非正 Jacobian、非有限质量、marker遗漏和共享接口错误均为0，Prism/Tet核心共形。
+- `mesh.msh`、`mesh.su2` 必须成功写出并记录 SHA-256；SU2只运行零迭代网格读取/预处理检查且返回0，不运行 Euler/RANS，不启用CUDA。
+- 只由 `pvbatch` 对本轮 `mesh.msh` 生成无界面模型图片；图片、命令、日志、版本、资源和全部验收 manifest 进入本轮唯一证据包，并回传本机后复算 SHA-256。
+- 全部本地门禁和代码审查通过；完成后更新为 `PRODUCTION_MEDIUM_MESH=PASS`，但保持 `PRODUCTION_FINE_MESH=HOLD`、`RANS=DIAGNOSTIC_L6_PASS`、`PRODUCTION_CFD=HOLD`。
+
 ## 本轮任务：粗网格分区加密结构审查、冻结与中网格授权
 
 状态：已完成并通过。已经 PASS 的4,965,647单元生产粗网格通过机器合同、实现测试和AutoDL网格本体实测三重审查；分区结构已冻结，约1000万单元中网格已获生成授权但本轮未生成，未启动RANS。
