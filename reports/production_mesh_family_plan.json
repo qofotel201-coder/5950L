@@ -1,6 +1,6 @@
 {
   "schema": "cfdpipe.production_mesh_family_plan.v1",
-  "status": "CALIBRATION",
+  "status": "FROZEN",
   "mesh_family": {
     "geometry_source": "geometry/derived/model1_shared_topology/model1_shared_topology.brep",
     "geometry_sha256": "13698e9afb96ac21205c31d8a23f718adece802fda51ed1a67857ba73379e121",
@@ -22,28 +22,28 @@
     {
       "name": "farfield",
       "bounds_m": [-0.522, -3.606, -7.212, 6.306, 3.606, 7.212],
-      "coarse_size_m": 0.05904,
+      "coarse_size_m": 0.05422168871352732,
       "transition_width_m": 0.5,
       "intent": "coarsest outer-field tetrahedral core"
     },
     {
       "name": "transition",
       "bounds_m": [-0.2, -1.5, -1.5, 5.6, 1.5, 1.5],
-      "coarse_size_m": 0.03936,
+      "coarse_size_m": 0.03614779247568488,
       "transition_width_m": 0.5,
       "intent": "smooth bridge between near-body and farfield sizes"
     },
     {
       "name": "near_body_core",
       "bounds_m": [-0.1, -0.8, -0.8, 5.4, 0.8, 0.8],
-      "coarse_size_m": 0.02624,
+      "coarse_size_m": 0.024098528317123252,
       "transition_width_m": 0.3,
       "intent": "refined tetrahedral core adjacent to the frozen prism top"
     },
     {
       "name": "internal_passage",
       "bounds_m": [0.0, -0.36, -0.36, 5.3, 0.36, 0.36],
-      "coarse_size_m": 0.01804,
+      "coarse_size_m": 0.016567738218022234,
       "transition_width_m": 0.2,
       "intent": "finest core sizing for the internal passage"
     }
@@ -74,8 +74,16 @@
       "frozen_prisms": 280320,
       "uniform_base_size_factor_applied": 0.328,
       "method": "cube-root count calibration to a 5000000-cell total target"
+    },
+    "frozen_autodl_result": {
+      "run_id": "production_coarse_occ_20260805T010000Z_s0918389",
+      "generator_git_sha": "44d2ff646a54798264e362bbfdac62527d6d0e5e",
+      "input_volume_scale": 0.9183890364757337,
+      "actual_3d_elements": 4965647,
+      "actual_nodes": 935410,
+      "status": "PASS"
     }
   },
   "unique_execution_entry": "CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python ./scripts/cfdpipe.sh pipeline production-coarse-mesh --pilot-manifest <PASS_PILOT_MANIFEST> --pilot-sha256 <SHA256> --family-plan reports/production_mesh_family_plan.json --family-plan-sha256 <SHA256> --volume-scale <CALIBRATED_SCALE> --output runs/mesh/coarse/<RUN_ID>",
-  "next_level_gate": "Review coarse refinement regions and all quality gates before authorizing medium or fine mesh generation"
+  "next_level_gate": "Review the frozen coarse refinement regions and PASS evidence before separately authorizing medium mesh generation"
 }

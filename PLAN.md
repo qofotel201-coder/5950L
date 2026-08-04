@@ -2,7 +2,21 @@
 
 ## 本轮任务：AutoDL 生产粗网格生成与验收
 
-状态：进行中。严格使用已冻结的 Pilot coupled 修复参数，在 AutoDL 上生成且只生成约500万单元的生产粗网格；目标与容差来自 `config/project.toml` 和 `config/coarse_mesh.toml`，不得启动中/细网格或任何 RANS。
+状态：已完成并通过。AutoDL 使用冻结的 Pilot coupled 修复参数和60层边界层生成4,965,647单元生产粗网格；全部质量、marker、共享接口、共形、MSH/SU2写出和SU2零迭代读取门均为PASS，未启动中/细网格或任何RANS。
+
+### 最终状态
+
+- `PRODUCTION_COARSE_MESH = PASS`
+- `PRODUCTION_MESH_FAMILY = COARSE_FROZEN_MEDIUM_FINE_HOLD`
+- `RANS = DIAGNOSTIC_L6_PASS`
+- `PRODUCTION_CFD = HOLD`
+
+### 最终证据
+
+- 生成提交为 `44d2ff646a54798264e362bbfdac62527d6d0e5e`，run 为 `production_coarse_occ_20260805T010000Z_s0918389`；总量4,965,647、节点935,410、Prism6 280,320、Tet4 4,685,327。
+- 60层冻结边界层最小 Scaled Jacobian 为 `0.010098248712453189`、阈下0；负体积、非正Jacobian、非有限质量、core gamma阈下、marker遗漏和共享接口错误均为0，边界层与核心共形。
+- `mesh.msh` SHA-256 为 `68f6af4cec625c62ef60fe2a34ccdb5ca09630240c1b8967fb11e80112e00725`；`mesh.su2` SHA-256 为 `89cdab79f151959a9667b0294d6f89d6d5f01076fa7a29e058867e6225654255`。SU2 8.5.0以`INNER_ITER=0`完成真实网格预处理并返回0。
+- 证据包已回传并复算 SHA-256 `3866355f420db7acaaff96d5f949e83492bb06c2f678f3b712bd2dbf0c5288b0`；本机解包后主manifest和结果报告均再次解析为PASS。
 
 ### 目标与验收标准
 

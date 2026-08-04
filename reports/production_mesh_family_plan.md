@@ -6,8 +6,8 @@ Pilot 已审计通过的壁面 `h=0.4 m` 三角化、60层边界层、首层高�
 
 四个物理区域为 farfield、transition、near_body_core 和 internal_passage。farfield 最疏，近体核心和内流道逐级加密；每个区域使用固定空间范围与正的过渡宽度，尺寸在边界外连续恢复。粗、中、细的物理范围保持不变，尺寸统一乘以 `1.000/0.794/0.630`。实际单元数允许在合同范围内浮动，网格尺度比和 GCI 必须使用实际单元数计算。
 
-AutoDL 首轮 OCC/HXT 校准 `production_coarse_occ_20260804T073000Z_s1000` 在原区域尺寸下得到166,405个核心四面体和280,320个冻结棱柱。按500万总量目标对四个区域统一应用立方根计数因子0.328；校准后粗级尺寸依次为farfield 0.05904 m、transition 0.03936 m、near-body 0.02624 m、internal-passage 0.01804 m。该调整不改变区域范围、过渡宽度、壁面三角化或60层边界层。
+AutoDL 首轮 OCC/HXT 校准后继续按实际优化后单元数应用统一体尺寸系数 `0.9183890364757337`。冻结粗级尺寸依次为 farfield `0.05422168871352732 m`、transition `0.03614779247568488 m`、near-body `0.024098528317123252 m`、internal-passage `0.016567738218022234 m`。最终 run `production_coarse_occ_20260805T010000Z_s0918389` 得到4,965,647个三维单元并通过全部质量门；该调整未改变区域范围、过渡宽度、壁面三角化或60层边界层。
 
 任何一级出现 Scaled Jacobian、体积、Jacobian、非有限质量、marker、共享接口或共形性失败，均禁止进入 RANS。只有粗网格加密区域经人工/机器证据确认合理且全部质量门通过后，才可单独授权生成中网格和细网格。
 
-机器真源及唯一执行入口见 `reports/production_mesh_family_plan.json`。当前状态为 `CALIBRATION`；AutoDL 实测冻结最终体尺寸后才可改为 `FROZEN`。
+机器真源及唯一执行入口见 `reports/production_mesh_family_plan.json`。当前状态为 `FROZEN`；下一阶段必须先审查粗网格加密区域及证据，再单独授权中网格，不能自动生成中/细网格或启动 RANS。
