@@ -13784,11 +13784,20 @@ class RealProjectBoundaryLayerStrategy:
                 refined_tops[surface].extend([nodes] if not matches else bisect_triangle(nodes, matches[0]))
 
         owner = min(int(tag) for tag in prism_volume_tags)
-        gmsh.model.mesh.clear(
-            [(3, int(tag)) for tag in [*core_volume_tags, *sorted(refined_prisms)]]
-        )
+        del core_volume_tags
+        # Remove only the replaced elements.  Clearing connected entities can
+        # discard shared nodes (or invalidate the still-live core); explicit
+        # element removal keeps the temporary pre-remesh model well formed.
+        for volume in sorted(refined_prisms):
+            current = _element_records_from_gmsh(gmsh, 3, volume)
+            gmsh.model.mesh.removeElements(
+                3, volume, [int(record["tag"]) for record in current]
+            )
         for surface in sorted({**refined_walls, **refined_tops}):
-            gmsh.model.mesh.clear([(2, surface)])
+            current = _element_records_from_gmsh(gmsh, 2, surface)
+            gmsh.model.mesh.removeElements(
+                2, surface, [int(record["tag"]) for record in current]
+            )
         all_coordinates = {**coordinates, **midpoint_coordinates}
         required_nodes = {
             int(node)
