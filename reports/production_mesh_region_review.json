@@ -5,6 +5,23 @@
     "minimum_prism_scaled_jacobian": 0.010098248712453189
   },
   "coarse_regions_frozen": true,
+  "actual_mesh_distribution": {
+    "status": "PASS",
+    "audit_git_sha": "6eff733c9dbe85f38ffd419a26992ece58bec6a9",
+    "audit_report_sha256": "4697c1834179af61c70d12325f0527479c5a78d9cb746af7341e36d579667da9",
+    "remote_report": "/root/autodl-tmp/5950L/runs/mesh_region_review/autodl_region_review_20260805T021000Z.json",
+    "local_evidence": "remote_evidence/mesh_region_review_autodl_region_review_20260805T021000Z/autodl_region_review_20260805T021000Z.json",
+    "tetra_characteristic_length_p50_m": {
+      "farfield": 0.036854133859121424,
+      "transition": 0.024771585496251365,
+      "near_body_core": 0.016437234221261213,
+      "internal_passage": 0.01174139015417612
+    },
+    "wall_prism_normal_thickness_p50_m": 2.7698615413683565e-07,
+    "tetra_centroids_outside_farfield_bounds": 0,
+    "actual_farfield_to_internal_median_size_strictly_decreases": true,
+    "actual_wall_normal_median_finer_than_internal_core_median": true
+  },
   "customer_requirements": {
     "farfield_coarsest": "PASS",
     "internal_passage_finest": "PASS",
@@ -23,7 +40,8 @@
     "coarse_mesh_msh_sha256": "68f6af4cec625c62ef60fe2a34ccdb5ca09630240c1b8967fb11e80112e00725",
     "coarse_mesh_su2_sha256": "89cdab79f151959a9667b0294d6f89d6d5f01076fa7a29e058867e6225654255",
     "coarse_result_sha256": "978fc7a9685d15afc4c515a5d50cc317f837c59edd37556fff9f968a709e4218",
-    "family_plan_sha256": "9522c0cfd1da172edcef3d960f834c5e945a5a08f919822da6821d0aad8dec15"
+    "audited_plan_before_execution_entry_binding_sha256": "9522c0cfd1da172edcef3d960f834c5e945a5a08f919822da6821d0aad8dec15",
+    "final_family_plan_sha256": "e1980dcbfce385f73d310423d5641ee8a23bee328aad2bcc2bac492cf668fd84"
   },
   "medium_authorization": {
     "cubic_projection_cells": 9640375,

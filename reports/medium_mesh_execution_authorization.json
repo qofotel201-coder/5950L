@@ -1,0 +1,27 @@
+{
+  "schema": "cfdpipe.production_medium_mesh_authorization.v1",
+  "status": "AUTHORIZED_NOT_BUILT",
+  "family_plan": "reports/production_mesh_family_plan.json",
+  "family_plan_sha256": "e1980dcbfce385f73d310423d5641ee8a23bee328aad2bcc2bac492cf668fd84",
+  "coarse_region_review": "reports/production_mesh_region_review.json",
+  "coarse_region_review_status": "PASS",
+  "target_cells": 10000000,
+  "minimum_cells": 8000000,
+  "maximum_cells": 12000000,
+  "projected_cells": 9640375,
+  "uniform_size_factor": 0.794,
+  "output_rule": "Replace <UNIQUE_RUN_ID> once with a new directory name under runs/mesh/medium; an existing directory is forbidden.",
+  "unique_execution_entry": "CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python ./scripts/cfdpipe.sh pipeline production-coarse-mesh --mesh-level medium --pilot-manifest runs/mesh/coarse/autodl_coupled_repair_20260803T183059Z/coarse_repair_audit_manifest.json --pilot-sha256 77816bd393843f2fbcc047a47c542187c45f8e67b5b065f9e4c5a4a71509b703 --family-plan reports/production_mesh_family_plan.json --family-plan-sha256 e1980dcbfce385f73d310423d5641ee8a23bee328aad2bcc2bac492cf668fd84 --volume-scale 1.0 --output runs/mesh/medium/<UNIQUE_RUN_ID>",
+  "frozen_contract": {
+    "geometry_sha256": "13698e9afb96ac21205c31d8a23f718adece802fda51ed1a67857ba73379e121",
+    "boundary_layer_count": 60,
+    "first_layer_height_m": 2.7645771273320875e-07,
+    "growth_ratio": 1.2,
+    "physical_extents_unchanged": true,
+    "marker_contract_unchanged": true,
+    "pilot_repair_parameters_unchanged": true
+  },
+  "post_build_gate": "The medium mesh must independently pass cell-count, Scaled Jacobian, volume, Jacobian, finite-quality, marker, shared-interface, conformity, MSH/SU2 write, and SU2 readback gates before RANS or fine-mesh authorization.",
+  "rans_authorized": false,
+  "fine_mesh_authorized": false
+}

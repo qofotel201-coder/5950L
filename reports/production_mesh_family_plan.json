@@ -90,6 +90,6 @@
       "status": "PASS"
     }
   },
-  "unique_execution_entry": "CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python ./scripts/cfdpipe.sh pipeline production-coarse-mesh --mesh-level medium --pilot-manifest runs/mesh/coarse/autodl_coupled_repair_20260803T183059Z/coarse_repair_audit_manifest.json --pilot-sha256 77816bd393843f2fbcc047a47c542187c45f8e67b5b065f9e4c5a4a71509b703 --family-plan reports/production_mesh_family_plan.json --family-plan-sha256 <FINAL_PLAN_SHA256> --volume-scale 1.0 --output runs/mesh/medium/<UNIQUE_RUN_ID>",
+  "unique_execution_entry": "See reports/medium_mesh_execution_authorization.json; its machine-bound command contains this plan's final SHA-256 and requires a unique output directory.",
   "next_level_gate": "Generate and strictly accept the authorized medium mesh before any RANS or fine-mesh authorization"
 }
