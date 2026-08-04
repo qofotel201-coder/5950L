@@ -13509,6 +13509,144 @@ class RealProjectBoundaryLayerStrategy:
         }
 
     @staticmethod
+    def _refine_frozen_prism_tangentially(
+        gmsh: Any,
+        *,
+        prism_volume_tags: Sequence[int],
+        wall_surface_tags: Sequence[int],
+        top_surface_tags: Sequence[int],
+        lateral_surface_tags: Sequence[int],
+    ) -> dict[str, Any]:
+        """Split every frozen prism column four ways without adding layers.
+
+        Mid-edge nodes are shared globally.  Triangle faces are divided into
+        four triangles and lateral quadrangles into two quadrangles, while
+        each Prism6 becomes four Prism6 elements.  The operation changes only
+        the tangential topology: every original bottom/top node pair and all
+        60 frozen normal intervals remain untouched.
+        """
+
+        coordinates = _nodes_from_gmsh(gmsh)
+        midpoint_tags: dict[tuple[int, int], int] = {}
+        midpoint_coordinates: dict[int, tuple[float, float, float]] = {}
+        next_node = int(gmsh.model.mesh.getMaxNodeTag()) + 1
+        next_element = int(gmsh.model.mesh.getMaxElementTag()) + 1
+
+        def midpoint(left: int, right: int) -> int:
+            nonlocal next_node
+            key = tuple(sorted((int(left), int(right))))
+            existing = midpoint_tags.get(key)
+            if existing is not None:
+                return existing
+            tag = next_node
+            next_node += 1
+            a, b = coordinates[key[0]], coordinates[key[1]]
+            midpoint_tags[key] = tag
+            midpoint_coordinates[tag] = tuple(
+                0.5 * (float(a[axis]) + float(b[axis])) for axis in range(3)
+            )
+            return tag
+
+        prism_snapshots: dict[int, list[list[int]]] = {}
+        for raw_tag in prism_volume_tags:
+            tag = int(raw_tag)
+            records = _element_records_from_gmsh(gmsh, 3, tag)
+            if not records or any(record["type"] != "Prism 6" for record in records):
+                raise BoundaryLayerSmokeError(
+                    "tangential refinement requires Prism6-only volumes"
+                )
+            refined: list[list[int]] = []
+            for record in records:
+                a, b, c, d, e, f = [int(value) for value in record["nodes"]]
+                ab, bc, ca = midpoint(a, b), midpoint(b, c), midpoint(c, a)
+                de, ef, fd = midpoint(d, e), midpoint(e, f), midpoint(f, d)
+                refined.extend(
+                    [
+                        [a, ab, ca, d, de, fd],
+                        [ab, b, bc, de, e, ef],
+                        [ca, bc, c, fd, ef, f],
+                        [ab, bc, ca, de, ef, fd],
+                    ]
+                )
+            prism_snapshots[tag] = refined
+
+        triangle_surfaces = {
+            int(tag) for tag in [*wall_surface_tags, *top_surface_tags]
+        }
+        surface_snapshots: dict[int, tuple[int, list[list[int]]]] = {}
+        for tag in sorted(triangle_surfaces):
+            records = _element_records_from_gmsh(gmsh, 2, tag)
+            if not records or any(record["type"] != "Triangle 3" for record in records):
+                raise BoundaryLayerSmokeError(
+                    "tangential refinement requires Triangle3 wall/top surfaces"
+                )
+            refined = []
+            for record in records:
+                a, b, c = [int(value) for value in record["nodes"]]
+                ab, bc, ca = midpoint(a, b), midpoint(b, c), midpoint(c, a)
+                refined.extend(
+                    [[a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca]]
+                )
+            surface_snapshots[tag] = (
+                int(gmsh.model.mesh.getElementType("triangle", 1)),
+                refined,
+            )
+        for raw_tag in lateral_surface_tags:
+            tag = int(raw_tag)
+            records = _element_records_from_gmsh(gmsh, 2, tag)
+            if not records:
+                continue
+            if any(record["type"] != "Quadrilateral 4" for record in records):
+                raise BoundaryLayerSmokeError(
+                    "tangential refinement requires Quad4 lateral surfaces"
+                )
+            refined = []
+            for record in records:
+                a, b, c, d = [int(value) for value in record["nodes"]]
+                ab, dc = midpoint(a, b), midpoint(d, c)
+                refined.extend([[a, ab, dc, d], [ab, b, c, dc]])
+            surface_snapshots[tag] = (
+                int(gmsh.model.mesh.getElementType("quadrangle", 1)),
+                refined,
+            )
+
+        # Classifying new nodes on one retained volume is sufficient for the
+        # discrete mesh; lower-dimensional elements may reference them and the
+        # later production snapshot/restore preserves their exact identities.
+        owner = min(int(tag) for tag in prism_volume_tags)
+        new_nodes = sorted(midpoint_coordinates)
+        gmsh.model.mesh.addNodes(
+            3,
+            owner,
+            new_nodes,
+            [value for tag in new_nodes for value in midpoint_coordinates[tag]],
+        )
+        for tag, (element_type, records) in surface_snapshots.items():
+            gmsh.model.mesh.clear([(2, tag)])
+            tags = list(range(next_element, next_element + len(records)))
+            next_element += len(records)
+            gmsh.model.mesh.addElementsByType(
+                tag, element_type, tags, [node for record in records for node in record]
+            )
+        prism_type = int(gmsh.model.mesh.getElementType("prism", 1))
+        for tag, records in prism_snapshots.items():
+            gmsh.model.mesh.clear([(3, tag)])
+            tags = list(range(next_element, next_element + len(records)))
+            next_element += len(records)
+            gmsh.model.mesh.addElementsByType(
+                tag, prism_type, tags, [node for record in records for node in record]
+            )
+        return {
+            "schema": "cfdpipe.frozen_prism_tangential_refinement.v1",
+            "status": "PASS",
+            "normal_layer_count_preserved": True,
+            "column_multiplier": 4,
+            "initial_prism_count": sum(len(records) // 4 for records in prism_snapshots.values()),
+            "final_prism_count": sum(len(records) for records in prism_snapshots.values()),
+            "new_midpoint_node_count": len(new_nodes),
+        }
+
+    @staticmethod
     def _refine_production_tetrahedral_cores(
         gmsh: Any,
         *,
@@ -14345,6 +14483,15 @@ class RealProjectBoundaryLayerStrategy:
                 raise BoundaryLayerSmokeError(
                     "frozen repair replay did not finish at the strict PASS state"
                 )
+            tangential_refinement = None
+            if normalized_config.get("production_tangential_refinement") is True:
+                tangential_refinement = self._refine_frozen_prism_tangentially(
+                    gmsh,
+                    prism_volume_tags=sorted(prism_by_wall.values()),
+                    wall_surface_tags=sorted(wall_set),
+                    top_surface_tags=sorted(top_by_wall.values()),
+                    lateral_surface_tags=lateral_tags,
+                )
             # The Pilot evidence is tied to the original h=0.4 wall/prism
             # topology and is therefore replayed before production core
             # refinement.  Tet4 centroid splits add no face nodes, so the
@@ -14693,6 +14840,7 @@ class RealProjectBoundaryLayerStrategy:
             )
             post_mesh_repair_evidence = {
                 **dict(post_mesh_repair_evidence),
+                "production_tangential_refinement": tangential_refinement,
                 "production_core_remesh": {
                     "schema": "cfdpipe.production_core_remesh.v1",
                     "status": "PASS",

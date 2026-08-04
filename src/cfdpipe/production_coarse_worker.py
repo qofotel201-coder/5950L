@@ -163,6 +163,8 @@ def main(argv: list[str] | None = None) -> int:
         maximum_3d_elements=target_range[1] + 250_000,
     )
     strategy_config.pop("normalized_config_sha256", None)
+    level_factor = {"coarse": 1.0, "medium": 0.794}[args.mesh_level]
+    strategy_config["characteristic_length_m"] = 0.4 * level_factor
     strategy_config["production_mesh_level"] = args.mesh_level
     strategy_config["production_target_element_count"] = int(
         level_contract["target_cells"]
@@ -182,7 +184,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     manifest = build_coarse_calibration(
         contract=contract,
-        characteristic_length_m=0.4,
+        characteristic_length_m=0.4 * level_factor,
         output_directory=args.output,
         allowed_output_root=ROOT / "runs" / "mesh" / args.mesh_level,
         strategy=strategy,
