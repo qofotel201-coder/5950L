@@ -1,0 +1,99 @@
+{
+  "coarse_quality": {
+    "all_hard_gate_failure_counts": 0,
+    "element_count_3d": 4965647,
+    "minimum_prism_scaled_jacobian": 0.010098248712453189
+  },
+  "coarse_regions_frozen": true,
+  "customer_requirements": {
+    "farfield_coarsest": "PASS",
+    "internal_passage_finest": "PASS",
+    "near_body_core_refined": "PASS",
+    "smooth_transitions": "PASS",
+    "wall_normal_resolution_dense": "PASS"
+  },
+  "frozen_wall": {
+    "first_layer_height_m": 2.7645771273320875e-07,
+    "growth_ratio": 1.2,
+    "layer_count": 60,
+    "tangential_size_m": 0.4
+  },
+  "input_bindings": {
+    "coarse_evidence_bundle_sha256": "3866355f420db7acaaff96d5f949e83492bb06c2f678f3b712bd2dbf0c5288b0",
+    "coarse_mesh_msh_sha256": "68f6af4cec625c62ef60fe2a34ccdb5ca09630240c1b8967fb11e80112e00725",
+    "coarse_mesh_su2_sha256": "89cdab79f151959a9667b0294d6f89d6d5f01076fa7a29e058867e6225654255",
+    "coarse_result_sha256": "978fc7a9685d15afc4c515a5d50cc317f837c59edd37556fff9f968a709e4218",
+    "family_plan_sha256": "9522c0cfd1da172edcef3d960f834c5e945a5a08f919822da6821d0aad8dec15"
+  },
+  "medium_authorization": {
+    "cubic_projection_cells": 9640375,
+    "fine_mesh_allowed": false,
+    "maximum_cells": 12000000,
+    "minimum_cells": 8000000,
+    "output_root": "runs/mesh/medium",
+    "rans_allowed": false,
+    "status": "AUTHORIZED_NOT_BUILT",
+    "target_cells": 10000000,
+    "uniform_size_factor": 0.794
+  },
+  "regions": [
+    {
+      "bounds_m": [
+        -0.522,
+        -3.606,
+        -7.212,
+        6.306,
+        3.606,
+        7.212
+      ],
+      "coarse_size_m": 0.05422168871352732,
+      "medium_size_m": 0.04305202083854069,
+      "name": "farfield",
+      "transition_width_m": 0.5
+    },
+    {
+      "bounds_m": [
+        -0.2,
+        -1.5,
+        -1.5,
+        5.6,
+        1.5,
+        1.5
+      ],
+      "coarse_size_m": 0.03614779247568488,
+      "medium_size_m": 0.028701347225693796,
+      "name": "transition",
+      "transition_width_m": 0.5
+    },
+    {
+      "bounds_m": [
+        -0.1,
+        -0.8,
+        -0.8,
+        5.4,
+        0.8,
+        0.8
+      ],
+      "coarse_size_m": 0.024098528317123252,
+      "medium_size_m": 0.019134231483795863,
+      "name": "near_body_core",
+      "transition_width_m": 0.3
+    },
+    {
+      "bounds_m": [
+        0.0,
+        -0.36,
+        -0.36,
+        5.3,
+        0.36,
+        0.36
+      ],
+      "coarse_size_m": 0.016567738218022234,
+      "medium_size_m": 0.013154784145109654,
+      "name": "internal_passage",
+      "transition_width_m": 0.2
+    }
+  ],
+  "schema": "cfdpipe.production_mesh_region_review.v1",
+  "status": "PASS"
+}

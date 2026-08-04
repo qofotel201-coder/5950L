@@ -1,6 +1,6 @@
 {
   "schema": "cfdpipe.production_mesh_family_plan.v1",
-  "status": "FROZEN",
+  "status": "COARSE_REGIONS_FROZEN_MEDIUM_AUTHORIZED",
   "mesh_family": {
     "geometry_source": "geometry/derived/model1_shared_topology/model1_shared_topology.brep",
     "geometry_sha256": "13698e9afb96ac21205c31d8a23f718adece802fda51ed1a67857ba73379e121",
@@ -11,11 +11,17 @@
     "wall_tangential_size_m": 0.4,
     "level_size_factors": [1.0, 0.794, 0.63],
     "physical_extents_identical_across_levels": true,
-    "actual_counts_required_for_grid_ratio_and_gci": true
+    "actual_counts_required_for_grid_ratio_and_gci": true,
+    "sizing_implementation": {
+      "dimension_3_only": true,
+      "region_composition": "minimum",
+      "transition_interpolation": "linear_distance_to_box",
+      "wall_surface_triangulation_preserved": true
+    }
   },
   "levels": {
     "coarse": {"target_cells": 5000000, "minimum_cells": 4750000, "maximum_cells": 5250000, "build_authorized": true},
-    "medium": {"target_cells": 10000000, "build_authorized": false},
+    "medium": {"target_cells": 10000000, "minimum_cells": 8000000, "maximum_cells": 12000000, "build_authorized": true},
     "fine": {"target_cells": 20000000, "build_authorized": false}
   },
   "physical_regions": [
@@ -84,6 +90,6 @@
       "status": "PASS"
     }
   },
-  "unique_execution_entry": "CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python ./scripts/cfdpipe.sh pipeline production-coarse-mesh --pilot-manifest <PASS_PILOT_MANIFEST> --pilot-sha256 <SHA256> --family-plan reports/production_mesh_family_plan.json --family-plan-sha256 <SHA256> --volume-scale <CALIBRATED_SCALE> --output runs/mesh/coarse/<RUN_ID>",
-  "next_level_gate": "Review the frozen coarse refinement regions and PASS evidence before separately authorizing medium mesh generation"
+  "unique_execution_entry": "CFD_PYTHON=/root/autodl-tmp/envs/cfdpipe/bin/python ./scripts/cfdpipe.sh pipeline production-coarse-mesh --mesh-level medium --pilot-manifest runs/mesh/coarse/autodl_coupled_repair_20260803T183059Z/coarse_repair_audit_manifest.json --pilot-sha256 77816bd393843f2fbcc047a47c542187c45f8e67b5b065f9e4c5a4a71509b703 --family-plan reports/production_mesh_family_plan.json --family-plan-sha256 <FINAL_PLAN_SHA256> --volume-scale 1.0 --output runs/mesh/medium/<UNIQUE_RUN_ID>",
+  "next_level_gate": "Generate and strictly accept the authorized medium mesh before any RANS or fine-mesh authorization"
 }

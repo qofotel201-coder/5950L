@@ -803,6 +803,9 @@ def build_parser() -> argparse.ArgumentParser:
     production_coarse_mesh.add_argument("--family-plan", type=Path, required=True)
     production_coarse_mesh.add_argument("--family-plan-sha256", required=True)
     production_coarse_mesh.add_argument("--volume-scale", type=float, required=True)
+    production_coarse_mesh.add_argument(
+        "--mesh-level", choices=("coarse", "medium"), default="coarse"
+    )
     production_coarse_mesh.add_argument("--output", type=Path, required=True)
     production_coarse_mesh.set_defaults(
         handler=_handle_pipeline_production_coarse_mesh
@@ -5697,6 +5700,8 @@ def _handle_pipeline_production_coarse_mesh(args: argparse.Namespace) -> int:
         str(args.family_plan_sha256),
         "--volume-scale",
         format(float(args.volume_scale), ".17g"),
+        "--mesh-level",
+        str(args.mesh_level),
         "--output",
         str(args.output),
     ]

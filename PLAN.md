@@ -1,5 +1,18 @@
 # PLAN
 
+## 本轮任务：粗网格分区加密结构审查、冻结与中网格授权
+
+状态：进行中。只审查已经 PASS 的4,965,647单元生产粗网格、机器计划与 Gmsh 尺寸场实现，不生成中网格、不启动RANS；只有“远场疏、壁面密、内流道密、近体核心区密”、固定区域范围、平滑过渡、60层冻结边界层及粗网格完整质量证据全部通过后，才授权约1000万单元中网格。
+
+### 目标与验收标准
+
+- 分区机器合同必须明确且严格满足 `farfield > transition > near_body_core > internal_passage` 的体网格尺寸关系；壁面切向三角化保持冻结 `0.4 m`，60层、首层高度、增长率和局部修复参数保持不变。
+- 四个区域的 bounds 必须有限、顺序合法并按 `internal_passage ⊂ near_body_core ⊂ transition ⊂ farfield` 嵌套；每区过渡宽度为正，Gmsh 实现必须使用连续距离/阈值/最小值组合而非硬跳变。
+- 审查必须显式绑定粗网格结果、生成提交、MSH/SU2 SHA-256、证据包 SHA-256、marker/interface/共形与全部质量门；不得仅凭计划文字授权。
+- 中网格目标必须处于仓库固定的800万至1200万范围，本计划冻结为约1000万；只使用相同 BREP、marker、60层边界层、区域 bounds 与过渡宽度，并对四类核心尺寸统一应用 `0.794` 系数。
+- 生成可重复执行的机器审查器、JSON/Markdown 审查报告和中网格唯一入口；本轮只把 `PRODUCTION_MEDIUM_MESH` 更新为 `AUTHORIZED_NOT_BUILT`，保持 `PRODUCTION_FINE_MESH=HOLD`、`RANS=DIAGNOSTIC_L6_PASS`、`PRODUCTION_CFD=HOLD`。
+- repository preflight、CAD-free、完整单元测试、compileall、安全扫描与 `git diff --check` 全部PASS；本地、GitHub与AutoDL最终提交一致。
+
 ## 本轮任务：AutoDL 生产粗网格生成与验收
 
 状态：已完成并通过。AutoDL 使用冻结的 Pilot coupled 修复参数和60层边界层生成4,965,647单元生产粗网格；全部质量、marker、共享接口、共形、MSH/SU2写出和SU2零迭代读取门均为PASS，未启动中/细网格或任何RANS。
