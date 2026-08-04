@@ -14328,6 +14328,24 @@ class RealProjectBoundaryLayerStrategy:
         element_tags = [int(element["tag"]) for element in elements]
         tangential_refinement = plan.get("production_tangential_refinement")
         if isinstance(tangential_refinement, Mapping):
+            raw_schedules = plan["post_mesh_repair_plan"].get(
+                "root_cumulative_heights_m"
+            )
+            if not isinstance(raw_schedules, Mapping) or not raw_schedules:
+                raise BoundaryLayerSmokeError(
+                    "production tangential verification has no frozen layer schedule"
+                )
+            schedule_lengths = {
+                len(values)
+                for values in raw_schedules.values()
+                if isinstance(values, Sequence)
+                and not isinstance(values, (str, bytes))
+            }
+            if len(schedule_lengths) != 1:
+                raise BoundaryLayerSmokeError(
+                    "production tangential verification has inconsistent layer schedules"
+                )
+            expected_layer_count = next(iter(schedule_lengths))
             column_lengths = [
                 len(column) for local in columns.values() for column in local
             ]
@@ -14335,9 +14353,10 @@ class RealProjectBoundaryLayerStrategy:
             expected_prisms = int(tangential_refinement["final_prism_count"])
             if (
                 tangential_refinement.get("status") != "PASS"
+                or expected_layer_count < _REQUIRED_LAYER_COUNT
                 or not column_lengths
                 or len(column_lengths) != expected_columns
-                or any(length != _REQUIRED_LAYER_COUNT for length in column_lengths)
+                or any(length != expected_layer_count for length in column_lengths)
                 or sum(column_lengths) != expected_prisms
             ):
                 raise BoundaryLayerSmokeError(
@@ -14349,6 +14368,7 @@ class RealProjectBoundaryLayerStrategy:
                 "verification_basis": "final_wall_face_to_prism_topology",
                 "source_repair_chain_verification_superseded": True,
                 "column_count": len(column_lengths),
+                "required_layer_count": expected_layer_count,
                 "minimum_layer_count": min(column_lengths),
                 "maximum_layer_count": max(column_lengths),
                 "prism_count": sum(column_lengths),
