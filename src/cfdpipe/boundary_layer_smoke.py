@@ -13799,14 +13799,32 @@ class RealProjectBoundaryLayerStrategy:
                 2, surface, [int(record["tag"]) for record in current]
             )
         all_coordinates = {**coordinates, **midpoint_coordinates}
+        classified_nodes = set(_nodes_from_gmsh(gmsh))
+        for surface, records in [*refined_walls.items(), *refined_tops.items()]:
+            surface_new = sorted(
+                {
+                    int(node)
+                    for record in records
+                    for node in record
+                    if int(node) in midpoint_coordinates
+                }
+                - classified_nodes
+            )
+            if surface_new:
+                gmsh.model.mesh.addNodes(
+                    2,
+                    int(surface),
+                    surface_new,
+                    [value for tag in surface_new for value in all_coordinates[tag]],
+                )
+                classified_nodes.update(surface_new)
         required_nodes = {
             int(node)
             for records in [*refined_walls.values(), *refined_tops.values(), *refined_prisms.values()]
             for record in records
             for node in record
         }
-        present_nodes = set(_nodes_from_gmsh(gmsh))
-        new_nodes = sorted(required_nodes - present_nodes)
+        new_nodes = sorted(required_nodes - classified_nodes)
         gmsh.model.mesh.addNodes(3, owner, new_nodes, [value for tag in new_nodes for value in all_coordinates[tag]])
         triangle_type = int(gmsh.model.mesh.getElementType("triangle", 1))
         for surface, records in {**refined_walls, **refined_tops}.items():
