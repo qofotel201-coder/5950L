@@ -13695,10 +13695,30 @@ class RealProjectBoundaryLayerStrategy:
         target_added = round(triangle_count * (ratio ** -2 - 1.0))
         target_pairs = max(1, target_added // 2)
         selected: dict[tuple[int, int, int], tuple[int, int]] = {}
+        unsafe_triangles: set[tuple[int, int, int]] = set()
+        for raw_volume in prism_volume_tags:
+            records = _element_records_from_gmsh(gmsh, 3, int(raw_volume))
+            root_records = [
+                record
+                for record in records
+                if tuple(sorted(int(value) for value in record["nodes"][:3]))
+                in triangle_to_surface
+            ]
+            if root_records:
+                qualities = gmsh.model.mesh.getElementQualities(
+                    [int(record["tag"]) for record in root_records], "minSJ"
+                )
+                for record, quality in zip(root_records, qualities):
+                    if float(quality) < 0.05:
+                        unsafe_triangles.add(
+                            tuple(sorted(int(value) for value in record["nodes"][:3]))
+                        )
         # Prefer long edges, with node tags as a deterministic tie breaker.
         candidates = []
         for edge, owners in edge_owners.items():
             if len(owners) != 2:
+                continue
+            if any(owner[1] in unsafe_triangles for owner in owners):
                 continue
             a, b = coordinates[edge[0]], coordinates[edge[1]]
             length2 = sum((float(a[i]) - float(b[i])) ** 2 for i in range(3))
@@ -13748,22 +13768,52 @@ class RealProjectBoundaryLayerStrategy:
                 edge = selected.get(tuple(sorted(nodes)))
                 refined_walls[surface].extend([nodes] if edge is None else bisect_triangle(nodes, edge))
 
+        all_prism_records = {
+            int(raw_volume): _element_records_from_gmsh(gmsh, 3, int(raw_volume))
+            for raw_volume in prism_volume_tags
+        }
+        propagated_edges = set(selected.values())
+        for _layer in range(60):
+            additions: set[tuple[int, int]] = set()
+            for records in all_prism_records.values():
+                for record in records:
+                    nodes = [int(value) for value in record["nodes"]]
+                    bottom_edges = {
+                        tuple(sorted((nodes[0], nodes[1]))),
+                        tuple(sorted((nodes[1], nodes[2]))),
+                        tuple(sorted((nodes[2], nodes[0]))),
+                    }
+                    matches = sorted(bottom_edges & propagated_edges)
+                    if len(matches) == 1:
+                        edge = matches[0]
+                        positions = [nodes[:3].index(edge[0]), nodes[:3].index(edge[1])]
+                        additions.add(tuple(sorted((nodes[positions[0] + 3], nodes[positions[1] + 3]))))
+            before = len(propagated_edges)
+            propagated_edges.update(additions)
+            if len(propagated_edges) == before:
+                break
         top_selected_edges: set[tuple[int, int]] = set()
         refined_prisms: dict[int, list[list[int]]] = defaultdict(list)
         original_prism_count = 0
-        for raw_volume in prism_volume_tags:
-            volume = int(raw_volume)
-            records = _element_records_from_gmsh(gmsh, 3, volume)
+        for volume, records in all_prism_records.items():
             if not records or any(record["type"] != "Prism 6" for record in records):
                 raise BoundaryLayerSmokeError("adaptive refinement requires Prism6-only volumes")
             original_prism_count += len(records)
             for record in records:
                 nodes = [int(value) for value in record["nodes"]]
                 bottom = tuple(sorted(nodes[:3]))
-                edge = selected.get(bottom)
-                if edge is None:
+                bottom_edges = {
+                    tuple(sorted((nodes[0], nodes[1]))),
+                    tuple(sorted((nodes[1], nodes[2]))),
+                    tuple(sorted((nodes[2], nodes[0]))),
+                }
+                matches = sorted(bottom_edges & propagated_edges)
+                if not matches:
                     refined_prisms[volume].append(nodes)
                     continue
+                if len(matches) != 1:
+                    raise BoundaryLayerSmokeError("prism layer has multiple selected tangential edges")
+                edge = matches[0]
                 variants = [(nodes[i], nodes[(i + 1) % 3], nodes[(i + 2) % 3], nodes[i + 3], nodes[(i + 1) % 3 + 3], nodes[(i + 2) % 3 + 3]) for i in range(3)]
                 a, b, c, d, e, f = next(value for value in variants if set(value[:2]) == set(edge))
                 m0, m1 = midpoint(a, b), midpoint(d, e)
