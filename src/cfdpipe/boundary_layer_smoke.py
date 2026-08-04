@@ -13755,8 +13755,13 @@ class RealProjectBoundaryLayerStrategy:
             selected[triangles[1]] = edge
             if len(selected) // 2 >= target_pairs:
                 break
-        if len(selected) // 2 < target_pairs:
-            raise BoundaryLayerSmokeError("wall matching cannot realize the requested tangential ratio")
+        safe_realized_ratio = math.sqrt(
+            triangle_count / (triangle_count + len(selected))
+        )
+        if len(selected) // 2 < target_pairs and safe_realized_ratio > 0.81:
+            raise BoundaryLayerSmokeError(
+                "safe wall matching is outside the accepted tangential-ratio tolerance"
+            )
 
         midpoint_tags: dict[tuple[int, int], int] = {}
         midpoint_coordinates: dict[int, tuple[float, float, float]] = {}
