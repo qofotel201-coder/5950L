@@ -14326,9 +14326,38 @@ class RealProjectBoundaryLayerStrategy:
             "transition": transition_faces,
         }
         element_tags = [int(element["tag"]) for element in elements]
-        repair_verification = _verify_one_layer_orientation_cone_subdivision(
-            gmsh, plan["post_mesh_repair_plan"]
-        )
+        tangential_refinement = plan.get("production_tangential_refinement")
+        if isinstance(tangential_refinement, Mapping):
+            column_lengths = [
+                len(column) for local in columns.values() for column in local
+            ]
+            expected_columns = int(tangential_refinement["final_column_count"])
+            expected_prisms = int(tangential_refinement["final_prism_count"])
+            if (
+                tangential_refinement.get("status") != "PASS"
+                or not column_lengths
+                or len(column_lengths) != expected_columns
+                or any(length != _REQUIRED_LAYER_COUNT for length in column_lengths)
+                or sum(column_lengths) != expected_prisms
+            ):
+                raise BoundaryLayerSmokeError(
+                    "production tangential prism columns failed strict chain verification"
+                )
+            repair_verification = {
+                "schema": "cfdpipe.production_tangential_chain_verification.v1",
+                "status": "PASS",
+                "verification_basis": "final_wall_face_to_prism_topology",
+                "source_repair_chain_verification_superseded": True,
+                "column_count": len(column_lengths),
+                "minimum_layer_count": min(column_lengths),
+                "maximum_layer_count": max(column_lengths),
+                "prism_count": sum(column_lengths),
+                "normal_layer_count_preserved": True,
+            }
+        else:
+            repair_verification = _verify_one_layer_orientation_cone_subdivision(
+                gmsh, plan["post_mesh_repair_plan"]
+            )
         if phase == "build":
             repair_evidence = {
                 **dict(plan["post_mesh_repair_evidence"]),
@@ -15132,6 +15161,7 @@ class RealProjectBoundaryLayerStrategy:
             "quality_improvement": dict(quality_improvement),
             "post_mesh_repair_plan": post_mesh_repair_plan,
             "post_mesh_repair_evidence": post_mesh_repair_evidence,
+            "production_tangential_refinement": tangential_refinement,
         }
         self._readback_plan = plan
         return self._payload(gmsh, plan, phase="build")
