@@ -13718,6 +13718,10 @@ class RealProjectBoundaryLayerStrategy:
         for edge, owners in edge_owners.items():
             if len(owners) != 2:
                 continue
+            if owners[0][0] != owners[1][0]:
+                # A CAD-surface seam owns curve/lateral topology that is not
+                # part of this interior-only refinement contract.
+                continue
             if any(owner[1] in unsafe_triangles for owner in owners):
                 continue
             a, b = coordinates[edge[0]], coordinates[edge[1]]
