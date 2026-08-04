@@ -2,7 +2,24 @@
 
 ## 本轮任务：AutoDL 生产中网格生成、全质量验收与网格图回传
 
-状态：进行中。使用已冻结并获授权的粗网格分区、60层边界层和 Pilot 局部修复参数，在 AutoDL 唯一新目录实际生成目标约1000万单元的中网格；本轮只进行网格生成、质量/SU2只读检查和 pvbatch 无界面网格可视化，不运行正式 RANS、不生成细网格。
+状态：已完成并通过。AutoDL 在唯一新目录生成9,860,365个三维单元的生产中网格，冻结60层边界层、全网格质量、marker/interface、共形、MSH/SU2写出、SU2 8.5.0零迭代实机读取和pvbatch无界面图片均为PASS；未运行正式RANS、未生成细网格。
+
+### 最终状态
+
+- `PRODUCTION_COARSE_MESH = PASS`
+- `PRODUCTION_MEDIUM_MESH = PASS`
+- `PRODUCTION_FINE_MESH = HOLD`
+- `RANS = DIAGNOSTIC_L6_PASS`
+- `PRODUCTION_CFD = HOLD`
+
+### 最终结果与证据
+
+- Run `production_medium_20260805T030000Z` 使用中级统一尺寸系数`0.794`，得到9,860,365个三维单元、1,760,365个MSH节点；Tet4为9,580,045、Prism6为280,320，4672根柱均保持60层。
+- Fresh MSH readback最小Scaled Jacobian为`0.010098230484760115`；阈下、负/非正体积、非正Jacobian、非有限质量、marker遗漏、共享接口错误和非流形面全部为0，Prism/Tet核心共形。
+- `mesh.msh`为502,922,592字节、SHA-256 `92c1803817c493438fa909eb4062916579bd94237ad2d98abf0ae8efdb5e1764`；`mesh.su2`为516,593,719字节、SHA-256 `38bc677c31a68d38075577b34f76cc43096bc85cd53d393e89a4166d96604a8b`。
+- SU2 8.5.0以`INNER_ITER=0`读取9,860,365个体单元和4个marker，返回码0、stderr为空；该步骤仅为网格预处理检查，没有Euler迭代或RANS。
+- ParaView 6.2/pvbatch使用发行包自带OSMesa llvmpipe无界面渲染等轴测和中心剖面图；图片已回传至`remote_evidence/production_medium_production_medium_20260805T030000Z/images/`。
+- 证据包已下载并在本机复算SHA-256 `6fb78e70c9d1ff862d1798359944cc051dacd5232418d10480cce84b0c3237c8`，解包后机器报告与全部16项检查再次解析为PASS。
 
 ### 目标与验收标准
 

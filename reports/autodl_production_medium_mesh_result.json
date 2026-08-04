@@ -1,0 +1,56 @@
+{
+  "schema": "cfdpipe.autodl_production_medium_mesh_result_summary.v1",
+  "status": "PASS",
+  "run_id": "production_medium_20260805T030000Z",
+  "generation_git_sha": "e451f0b7fcef28bb315e2adeca72a16887043337",
+  "evidence_git_sha": "27ce2463319c090228ca9d871636ce4b9f356957",
+  "target_element_range": [8000000, 12000000],
+  "target_elements": 10000000,
+  "element_count_3d": 9860365,
+  "node_count_msh": 1760365,
+  "node_count_su2": 1758799,
+  "tetrahedron_count": 9580045,
+  "prism_count": 280320,
+  "prism_column_count": 4672,
+  "boundary_layer_count": 60,
+  "minimum_scaled_jacobian": 0.010098230484760115,
+  "below_threshold_element_count": 0,
+  "negative_volume_count": 0,
+  "nonpositive_jacobian_count": 0,
+  "nonfinite_quality_count": 0,
+  "marker_omission_count": 0,
+  "shared_interface_error_count": 0,
+  "conformal_status": "PASS",
+  "mesh_msh": {
+    "size_bytes": 502922592,
+    "sha256": "92c1803817c493438fa909eb4062916579bd94237ad2d98abf0ae8efdb5e1764"
+  },
+  "mesh_su2": {
+    "size_bytes": 516593719,
+    "sha256": "38bc677c31a68d38075577b34f76cc43096bc85cd53d393e89a4166d96604a8b"
+  },
+  "su2_text_audit": "PASS",
+  "su2_cfd_read_check": {
+    "version": "8.5.0",
+    "inner_iter": 0,
+    "returncode": 0,
+    "status": "PASS"
+  },
+  "pvbatch_render": {
+    "version": "6.2",
+    "status": "PASS",
+    "isometric_sha256": "80990d3c4551e6ee6e788f87df1edacf8ea8ec483e92db755dd25335626e60a4",
+    "center_slice_sha256": "f39025e9b3d06c5280f95a3c24a3d2043021d4899f04af08b49de6c84229f6a8"
+  },
+  "elapsed_seconds": 2792.412856368348,
+  "peak_working_set_bytes": 36374921216,
+  "evidence_bundle": {
+    "remote_path": "/root/autodl-tmp/transfer/production_medium_20260805T030000Z.tar.gz",
+    "local_path": "remote_evidence/production_medium_production_medium_20260805T030000Z/production_medium_20260805T030000Z.tar.gz",
+    "sha256": "6fb78e70c9d1ff862d1798359944cc051dacd5232418d10480cce84b0c3237c8",
+    "local_verification": "PASS"
+  },
+  "formal_rans_run": false,
+  "fine_mesh_built": false,
+  "production_cfd": false
+}
