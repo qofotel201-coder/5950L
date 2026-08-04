@@ -13650,6 +13650,168 @@ class RealProjectBoundaryLayerStrategy:
         }
 
     @staticmethod
+    def _refine_frozen_prism_tangentially_adaptive(
+        gmsh: Any,
+        *,
+        prism_volume_tags: Sequence[int],
+        wall_surface_tags: Sequence[int],
+        top_surface_tags: Sequence[int],
+        target_size_ratio: float,
+    ) -> dict[str, Any]:
+        """Bisect a deterministic matching of columns to realize a size ratio.
+
+        Every chosen interior wall edge belongs to exactly two source
+        triangles, and no triangle is chosen twice.  Bisecting both owners
+        creates no hanging wall edge.  The same edge is bisected at every one
+        of the 61 layer nodes, so layer count, first height and growth remain
+        exactly frozen while the global area-equivalent tangential size tends
+        to ``target_size_ratio``.
+        """
+
+        ratio = _finite(target_size_ratio, "production tangential size ratio")
+        if not 0.5 < ratio < 1.0:
+            raise BoundaryLayerSmokeError("tangential size ratio must be in (0.5, 1)")
+        coordinates = _nodes_from_gmsh(gmsh)
+        wall_records: dict[int, list[dict[str, Any]]] = {}
+        edge_owners: dict[tuple[int, int], list[tuple[int, tuple[int, int, int]]]] = defaultdict(list)
+        triangle_to_surface: dict[tuple[int, int, int], int] = {}
+        for raw_surface in wall_surface_tags:
+            surface = int(raw_surface)
+            records = _element_records_from_gmsh(gmsh, 2, surface)
+            if not records or any(record["type"] != "Triangle 3" for record in records):
+                raise BoundaryLayerSmokeError("adaptive wall refinement requires Triangle3 surfaces")
+            wall_records[surface] = records
+            for record in records:
+                nodes = tuple(int(value) for value in record["nodes"])
+                key = tuple(sorted(nodes))
+                if key in triangle_to_surface:
+                    raise BoundaryLayerSmokeError("wall source triangle is duplicated")
+                triangle_to_surface[key] = surface
+                for left, right in ((nodes[0], nodes[1]), (nodes[1], nodes[2]), (nodes[2], nodes[0])):
+                    edge_owners[tuple(sorted((left, right)))].append((surface, key))
+        triangle_count = len(triangle_to_surface)
+        target_added = round(triangle_count * (ratio ** -2 - 1.0))
+        target_pairs = max(1, target_added // 2)
+        selected: dict[tuple[int, int, int], tuple[int, int]] = {}
+        # Prefer long edges, with node tags as a deterministic tie breaker.
+        candidates = []
+        for edge, owners in edge_owners.items():
+            if len(owners) != 2:
+                continue
+            a, b = coordinates[edge[0]], coordinates[edge[1]]
+            length2 = sum((float(a[i]) - float(b[i])) ** 2 for i in range(3))
+            candidates.append((-length2, edge, owners))
+        for _negative_length, edge, owners in sorted(candidates):
+            triangles = [owners[0][1], owners[1][1]]
+            if any(triangle in selected for triangle in triangles):
+                continue
+            selected[triangles[0]] = edge
+            selected[triangles[1]] = edge
+            if len(selected) // 2 >= target_pairs:
+                break
+        if len(selected) // 2 < target_pairs:
+            raise BoundaryLayerSmokeError("wall matching cannot realize the requested tangential ratio")
+
+        midpoint_tags: dict[tuple[int, int], int] = {}
+        midpoint_coordinates: dict[int, tuple[float, float, float]] = {}
+        next_node = int(gmsh.model.mesh.getMaxNodeTag()) + 1
+        next_element = int(gmsh.model.mesh.getMaxElementTag()) + 1
+
+        def midpoint(left: int, right: int) -> int:
+            nonlocal next_node
+            key = tuple(sorted((int(left), int(right))))
+            if key not in midpoint_tags:
+                tag = next_node
+                next_node += 1
+                a, b = coordinates[key[0]], coordinates[key[1]]
+                midpoint_tags[key] = tag
+                midpoint_coordinates[tag] = tuple(0.5 * (float(a[i]) + float(b[i])) for i in range(3))
+            return midpoint_tags[key]
+
+        def bisect_triangle(nodes: Sequence[int], edge: tuple[int, int]) -> list[list[int]]:
+            ordered = [int(value) for value in nodes]
+            other = next(value for value in ordered if value not in edge)
+            left, right = edge
+            middle = midpoint(left, right)
+            # Preserve the source orientation by selecting the cyclic ordering.
+            variants = [(ordered[i], ordered[(i + 1) % 3], ordered[(i + 2) % 3]) for i in range(3)]
+            a, b, c = next(value for value in variants if set(value[:2]) == set(edge))
+            m = midpoint(a, b)
+            return [[a, m, c], [m, b, c]]
+
+        refined_walls: dict[int, list[list[int]]] = defaultdict(list)
+        for surface, records in wall_records.items():
+            for record in records:
+                nodes = [int(value) for value in record["nodes"]]
+                edge = selected.get(tuple(sorted(nodes)))
+                refined_walls[surface].extend([nodes] if edge is None else bisect_triangle(nodes, edge))
+
+        top_selected_edges: set[tuple[int, int]] = set()
+        refined_prisms: dict[int, list[list[int]]] = defaultdict(list)
+        original_prism_count = 0
+        for raw_volume in prism_volume_tags:
+            volume = int(raw_volume)
+            records = _element_records_from_gmsh(gmsh, 3, volume)
+            if not records or any(record["type"] != "Prism 6" for record in records):
+                raise BoundaryLayerSmokeError("adaptive refinement requires Prism6-only volumes")
+            original_prism_count += len(records)
+            for record in records:
+                nodes = [int(value) for value in record["nodes"]]
+                bottom = tuple(sorted(nodes[:3]))
+                edge = selected.get(bottom)
+                if edge is None:
+                    refined_prisms[volume].append(nodes)
+                    continue
+                variants = [(nodes[i], nodes[(i + 1) % 3], nodes[(i + 2) % 3], nodes[i + 3], nodes[(i + 1) % 3 + 3], nodes[(i + 2) % 3 + 3]) for i in range(3)]
+                a, b, c, d, e, f = next(value for value in variants if set(value[:2]) == set(edge))
+                m0, m1 = midpoint(a, b), midpoint(d, e)
+                top_selected_edges.add(tuple(sorted((d, e))))
+                refined_prisms[volume].extend([[a, m0, c, d, m1, f], [m0, b, c, m1, e, f]])
+
+        refined_tops: dict[int, list[list[int]]] = defaultdict(list)
+        for raw_surface in top_surface_tags:
+            surface = int(raw_surface)
+            records = _element_records_from_gmsh(gmsh, 2, surface)
+            if not records or any(record["type"] != "Triangle 3" for record in records):
+                raise BoundaryLayerSmokeError("adaptive top refinement requires Triangle3 surfaces")
+            for record in records:
+                nodes = [int(value) for value in record["nodes"]]
+                matches = [edge for edge in top_selected_edges if set(edge) <= set(nodes)]
+                if len(matches) > 1:
+                    raise BoundaryLayerSmokeError("top triangle has multiple selected edges")
+                refined_tops[surface].extend([nodes] if not matches else bisect_triangle(nodes, matches[0]))
+
+        new_nodes = sorted(midpoint_coordinates)
+        owner = min(int(tag) for tag in prism_volume_tags)
+        gmsh.model.mesh.addNodes(3, owner, new_nodes, [value for tag in new_nodes for value in midpoint_coordinates[tag]])
+        triangle_type = int(gmsh.model.mesh.getElementType("triangle", 1))
+        for surface, records in {**refined_walls, **refined_tops}.items():
+            gmsh.model.mesh.clear([(2, surface)])
+            tags = list(range(next_element, next_element + len(records)))
+            next_element += len(records)
+            gmsh.model.mesh.addElementsByType(surface, triangle_type, tags, [node for record in records for node in record])
+        prism_type = int(gmsh.model.mesh.getElementType("prism", 1))
+        for volume, records in refined_prisms.items():
+            gmsh.model.mesh.clear([(3, volume)])
+            tags = list(range(next_element, next_element + len(records)))
+            next_element += len(records)
+            gmsh.model.mesh.addElementsByType(volume, prism_type, tags, [node for record in records for node in record])
+        final_columns = triangle_count + len(selected)
+        return {
+            "schema": "cfdpipe.frozen_prism_adaptive_tangential_refinement.v1",
+            "status": "PASS",
+            "normal_layer_count_preserved": True,
+            "target_size_ratio": ratio,
+            "realized_area_equivalent_size_ratio": math.sqrt(triangle_count / final_columns),
+            "initial_column_count": triangle_count,
+            "final_column_count": final_columns,
+            "selected_interior_edge_count": len(selected) // 2,
+            "initial_prism_count": original_prism_count,
+            "final_prism_count": sum(len(records) for records in refined_prisms.values()),
+            "new_midpoint_node_count": len(new_nodes),
+        }
+
+    @staticmethod
     def _refine_production_tetrahedral_cores(
         gmsh: Any,
         *,
@@ -14487,13 +14649,15 @@ class RealProjectBoundaryLayerStrategy:
                     "frozen repair replay did not finish at the strict PASS state"
                 )
             tangential_refinement = None
-            if normalized_config.get("production_tangential_refinement") is True:
-                tangential_refinement = self._refine_frozen_prism_tangentially(
+            if normalized_config.get("production_tangential_size_ratio") is not None:
+                tangential_refinement = self._refine_frozen_prism_tangentially_adaptive(
                     gmsh,
                     prism_volume_tags=sorted(prism_by_wall.values()),
                     wall_surface_tags=sorted(wall_set),
                     top_surface_tags=sorted(top_by_wall.values()),
-                    lateral_surface_tags=lateral_tags,
+                    target_size_ratio=float(
+                        normalized_config["production_tangential_size_ratio"]
+                    ),
                 )
             # The Pilot evidence is tied to the original h=0.4 wall/prism
             # topology and is therefore replayed before production core
