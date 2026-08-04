@@ -84,6 +84,7 @@ def main():
         "error": None,
     }
     source = None
+    merged = None
     slice_proxy = None
     view = None
     try:
@@ -91,7 +92,12 @@ def main():
         if source is None:
             raise RuntimeError("ParaView could not open the Gmsh MSH")
         simple.UpdatePipeline(proxy=source)
-        information = source.GetDataInformation()
+        merge_constructor = getattr(simple, "MergeBlocks", None)
+        if merge_constructor is None:
+            raise RuntimeError("ParaView provides no MergeBlocks filter for Gmsh data")
+        merged = merge_constructor(Input=source)
+        simple.UpdatePipeline(proxy=merged)
+        information = merged.GetDataInformation()
         bounds = [float(value) for value in information.GetBounds()]
         if len(bounds) != 6 or not all(math.isfinite(value) for value in bounds):
             raise RuntimeError("ParaView returned invalid mesh bounds")
@@ -109,15 +115,15 @@ def main():
         )
         view = simple.CreateView("RenderView")
         view.Background = [1.0, 1.0, 1.0]
-        display = simple.Show(source, view)
+        display = simple.Show(merged, view)
         display.Representation = "Surface With Edges"
         display.DiffuseColor = [0.72, 0.78, 0.88]
         display.EdgeColor = [0.08, 0.08, 0.08]
         _camera(view, bounds, [1.0, -1.0, 0.7], [0.0, 0.0, 1.0])
         manifest["images"].append(_save(view, output / "medium_mesh_isometric.png"))
-        simple.Hide(source, view)
+        simple.Hide(merged, view)
 
-        slice_proxy = simple.Slice(Input=source)
+        slice_proxy = simple.Slice(Input=merged)
         slice_proxy.SliceType = "Plane"
         slice_proxy.SliceType.Origin = [
             0.5 * (bounds[0] + bounds[1]),
@@ -140,7 +146,7 @@ def main():
             json.dumps(manifest, indent=2, sort_keys=True, allow_nan=False) + "\n",
             encoding="utf-8",
         )
-        for proxy in (slice_proxy, source, view):
+        for proxy in (slice_proxy, merged, source, view):
             if proxy is not None:
                 try:
                     simple.Delete(proxy)
