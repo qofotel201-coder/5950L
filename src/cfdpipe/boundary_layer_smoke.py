@@ -13515,6 +13515,7 @@ class RealProjectBoundaryLayerStrategy:
     def _refine_frozen_prism_tangentially(
         gmsh: Any,
         *,
+        core_volume_tags: Sequence[int],
         prism_volume_tags: Sequence[int],
         wall_surface_tags: Sequence[int],
         top_surface_tags: Sequence[int],
@@ -13653,6 +13654,7 @@ class RealProjectBoundaryLayerStrategy:
     def _refine_frozen_prism_tangentially_adaptive(
         gmsh: Any,
         *,
+        core_volume_tags: Sequence[int],
         prism_volume_tags: Sequence[int],
         wall_surface_tags: Sequence[int],
         top_surface_tags: Sequence[int],
@@ -13781,18 +13783,29 @@ class RealProjectBoundaryLayerStrategy:
                     raise BoundaryLayerSmokeError("top triangle has multiple selected edges")
                 refined_tops[surface].extend([nodes] if not matches else bisect_triangle(nodes, matches[0]))
 
-        new_nodes = sorted(midpoint_coordinates)
         owner = min(int(tag) for tag in prism_volume_tags)
-        gmsh.model.mesh.addNodes(3, owner, new_nodes, [value for tag in new_nodes for value in midpoint_coordinates[tag]])
+        gmsh.model.mesh.clear(
+            [(3, int(tag)) for tag in [*core_volume_tags, *sorted(refined_prisms)]]
+        )
+        for surface in sorted({**refined_walls, **refined_tops}):
+            gmsh.model.mesh.clear([(2, surface)])
+        all_coordinates = {**coordinates, **midpoint_coordinates}
+        required_nodes = {
+            int(node)
+            for records in [*refined_walls.values(), *refined_tops.values(), *refined_prisms.values()]
+            for record in records
+            for node in record
+        }
+        present_nodes = set(_nodes_from_gmsh(gmsh))
+        new_nodes = sorted(required_nodes - present_nodes)
+        gmsh.model.mesh.addNodes(3, owner, new_nodes, [value for tag in new_nodes for value in all_coordinates[tag]])
         triangle_type = int(gmsh.model.mesh.getElementType("triangle", 1))
         for surface, records in {**refined_walls, **refined_tops}.items():
-            gmsh.model.mesh.clear([(2, surface)])
             tags = list(range(next_element, next_element + len(records)))
             next_element += len(records)
             gmsh.model.mesh.addElementsByType(surface, triangle_type, tags, [node for record in records for node in record])
         prism_type = int(gmsh.model.mesh.getElementType("prism", 1))
         for volume, records in refined_prisms.items():
-            gmsh.model.mesh.clear([(3, volume)])
             tags = list(range(next_element, next_element + len(records)))
             next_element += len(records)
             gmsh.model.mesh.addElementsByType(volume, prism_type, tags, [node for record in records for node in record])
@@ -14652,6 +14665,7 @@ class RealProjectBoundaryLayerStrategy:
             if normalized_config.get("production_tangential_size_ratio") is not None:
                 tangential_refinement = self._refine_frozen_prism_tangentially_adaptive(
                     gmsh,
+                    core_volume_tags=[core1_tag, core2_tag],
                     prism_volume_tags=sorted(prism_by_wall.values()),
                     wall_surface_tags=sorted(wall_set),
                     top_surface_tags=sorted(top_by_wall.values()),
