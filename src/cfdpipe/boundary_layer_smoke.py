@@ -13696,23 +13696,30 @@ class RealProjectBoundaryLayerStrategy:
         target_pairs = max(1, target_added // 2)
         selected: dict[tuple[int, int, int], tuple[int, int]] = {}
         unsafe_triangles: set[tuple[int, int, int]] = set()
+        layer_successor: dict[tuple[int, int, int], tuple[tuple[int, int, int], float]] = {}
         for raw_volume in prism_volume_tags:
             records = _element_records_from_gmsh(gmsh, 3, int(raw_volume))
-            root_records = [
-                record
-                for record in records
-                if tuple(sorted(int(value) for value in record["nodes"][:3]))
-                in triangle_to_surface
-            ]
-            if root_records:
-                qualities = gmsh.model.mesh.getElementQualities(
-                    [int(record["tag"]) for record in root_records], "minSJ"
-                )
-                for record, quality in zip(root_records, qualities):
-                    if float(quality) < 0.05:
-                        unsafe_triangles.add(
-                            tuple(sorted(int(value) for value in record["nodes"][:3]))
-                        )
+            qualities = gmsh.model.mesh.getElementQualities(
+                [int(record["tag"]) for record in records], "minSJ"
+            )
+            for record, quality in zip(records, qualities):
+                nodes = [int(value) for value in record["nodes"]]
+                bottom = tuple(sorted(nodes[:3]))
+                top = tuple(sorted(nodes[3:]))
+                if bottom in layer_successor:
+                    raise BoundaryLayerSmokeError("prism layer successor is not unique")
+                layer_successor[bottom] = (top, float(quality))
+        for triangle in triangle_to_surface:
+            current = triangle
+            minimum = math.inf
+            for _layer in range(60):
+                successor = layer_successor.get(current)
+                if successor is None:
+                    raise BoundaryLayerSmokeError("frozen prism column is incomplete")
+                current, quality = successor
+                minimum = min(minimum, quality)
+            if minimum < 0.05:
+                unsafe_triangles.add(triangle)
         # Prefer long edges, with node tags as a deterministic tie breaker.
         candidates = []
         for edge, owners in edge_owners.items():
