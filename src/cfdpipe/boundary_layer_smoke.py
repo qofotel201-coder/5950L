@@ -14567,13 +14567,12 @@ class RealProjectBoundaryLayerStrategy:
             prism_type = int(gmsh.model.mesh.getElementType("prism", 1))
             current_nodes = set(_nodes_from_gmsh(gmsh))
             current_curves = {int(tag) for _dim, tag in gmsh.model.getEntities(1)}
+            for tag in surface_snapshots:
+                gmsh.model.mesh.clear([(2, tag)])
+            for tag in curve_snapshots:
+                gmsh.model.mesh.clear([(1, tag)])
             for tag, records in curve_snapshots.items():
-                if tag in current_curves:
-                    existing = _element_records_from_gmsh(gmsh, 1, tag)
-                    if existing == records:
-                        continue
-                    gmsh.model.mesh.clear([(1, tag)])
-                else:
+                if tag not in current_curves:
                     gmsh.model.addDiscreteEntity(1, tag=tag)
                 required_nodes = {
                     int(node) for record in records for node in record["nodes"]
@@ -14597,9 +14596,7 @@ class RealProjectBoundaryLayerStrategy:
                     )
             current_surfaces = {int(tag) for _dim, tag in gmsh.model.getEntities(2)}
             for tag, records in surface_snapshots.items():
-                if tag in current_surfaces:
-                    gmsh.model.mesh.clear([(2, tag)])
-                else:
+                if tag not in current_surfaces:
                     gmsh.model.addDiscreteEntity(2, tag=tag)
                 required_nodes = {
                     int(node) for record in records for node in record["nodes"]
