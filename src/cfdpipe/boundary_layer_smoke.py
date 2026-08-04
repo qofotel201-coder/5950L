@@ -13718,7 +13718,7 @@ class RealProjectBoundaryLayerStrategy:
                     raise BoundaryLayerSmokeError("frozen prism column is incomplete")
                 current, quality = successor
                 minimum = min(minimum, quality)
-            if minimum < 0.05:
+            if minimum < 0.3:
                 unsafe_triangles.add(triangle)
         # Prefer long edges, with node tags as a deterministic tie breaker.
         candidates = []
