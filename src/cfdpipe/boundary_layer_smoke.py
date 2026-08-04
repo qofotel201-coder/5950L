@@ -14876,7 +14876,7 @@ class RealProjectBoundaryLayerStrategy:
                 gmsh.model.mesh.optimize(
                     "Netgen",
                     force=True,
-                    niter=10,
+                    niter=50,
                 )
             finally:
                 gmsh.model.mesh.removeSizeCallback()
