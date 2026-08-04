@@ -165,6 +165,11 @@ def main(argv: list[str] | None = None) -> int:
     strategy_config.pop("normalized_config_sha256", None)
     level_factor = {"coarse": 1.0, "medium": 0.794}[args.mesh_level]
     strategy_config["characteristic_length_m"] = 0.4 * level_factor
+    if args.mesh_level == "medium":
+        # The bilateral inward-normal proof is geometric and remains bound to
+        # its original h=0.4 audit lineage; only the surface discretization is
+        # refined for the medium family member.
+        strategy_config["direction_replay_characteristic_length_m"] = 0.4
     strategy_config["production_mesh_level"] = args.mesh_level
     strategy_config["production_target_element_count"] = int(
         level_contract["target_cells"]

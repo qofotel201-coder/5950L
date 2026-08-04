@@ -2602,7 +2602,10 @@ def _validated_direction_replay_approval_for_config(
                 config.get("coarse_contract_sha256", "")
             ),
             expected_characteristic_length_m=float(
-                config.get("characteristic_length_m")
+                config.get(
+                    "direction_replay_characteristic_length_m",
+                    config.get("characteristic_length_m"),
+                )
             ),
             expected_local_schedule_binding_sha256=(
                 local_schedule_binding_sha256.casefold()
