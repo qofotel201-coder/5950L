@@ -13531,7 +13531,7 @@ class RealProjectBoundaryLayerStrategy:
         """
 
         coordinates = _nodes_from_gmsh(gmsh)
-        midpoint_tags: dict[tuple[int, int], int] = {}
+        midpoint_tags: dict[tuple[int, ...], int] = {}
         midpoint_coordinates: dict[int, tuple[float, float, float]] = {}
         next_node = int(gmsh.model.mesh.getMaxNodeTag()) + 1
         next_element = int(gmsh.model.mesh.getMaxElementTag()) + 1
@@ -13693,14 +13693,8 @@ class RealProjectBoundaryLayerStrategy:
                     edge_owners[tuple(sorted((left, right)))].append((surface, key))
         triangle_count = len(triangle_to_surface)
         target_added = round(triangle_count * (ratio ** -2 - 1.0))
-        target_pairs = max(1, target_added // 2)
-        selected: dict[tuple[int, int, int], tuple[int, int]] = {}
-        seam_nodes = {
-            int(node)
-            for edge, owners in edge_owners.items()
-            if len(owners) != 2 or owners[0][0] != owners[1][0]
-            for node in edge
-        }
+        target_selected = max(1, round(target_added / 2))
+        selected: set[tuple[int, int, int]] = set()
         unsafe_triangles: set[tuple[int, int, int]] = set()
         layer_successor: dict[tuple[int, int, int], tuple[tuple[int, int, int], float]] = {}
         for raw_volume in prism_volume_tags:
@@ -13715,6 +13709,7 @@ class RealProjectBoundaryLayerStrategy:
                 if bottom in layer_successor:
                     raise BoundaryLayerSmokeError("prism layer successor is not unique")
                 layer_successor[bottom] = (top, float(quality))
+        triangle_minimum_quality: dict[tuple[int, int, int], float] = {}
         for triangle in triangle_to_surface:
             current = triangle
             minimum = math.inf
@@ -13726,102 +13721,68 @@ class RealProjectBoundaryLayerStrategy:
                 minimum = min(minimum, quality)
             if minimum < 0.3:
                 unsafe_triangles.add(triangle)
-        # Prefer long edges, with node tags as a deterministic tie breaker.
-        candidates = []
-        for edge, owners in edge_owners.items():
-            if len(owners) != 2:
-                continue
-            if owners[0][0] != owners[1][0]:
-                # A CAD-surface seam owns curve/lateral topology that is not
-                # part of this interior-only refinement contract.
-                continue
-            owner_nodes = {node for owner in owners for node in owner[1]}
-            if len(owner_nodes & seam_nodes) >= 2:
-                continue
-            if any(owner[1] in unsafe_triangles for owner in owners):
-                continue
-            if max(float(coordinates[node][0]) for node in edge) > 5.1:
-                # Keep the tiny rear-cap seam shell frozen; bisecting its
-                # chord forces a deterministic sub-threshold core sliver.
-                continue
-            a, b = coordinates[edge[0]], coordinates[edge[1]]
-            length2 = sum((float(a[i]) - float(b[i])) ** 2 for i in range(3))
-            candidates.append((-length2, edge, owners))
-        for _negative_length, edge, owners in sorted(candidates):
-            triangles = [owners[0][1], owners[1][1]]
-            if any(triangle in selected for triangle in triangles):
-                continue
-            selected[triangles[0]] = edge
-            selected[triangles[1]] = edge
-            if len(selected) // 2 >= target_pairs:
-                break
-        safe_realized_ratio = math.sqrt(
-            triangle_count / (triangle_count + len(selected))
-        )
-        if len(selected) // 2 < target_pairs and safe_realized_ratio > 0.81:
-            raise BoundaryLayerSmokeError(
-                "safe wall matching is outside the accepted tangential-ratio tolerance"
+            triangle_minimum_quality[triangle] = minimum
+        candidates = sorted(
+            (
+                -triangle_minimum_quality[triangle],
+                triangle,
             )
+            for triangle in triangle_to_surface
+            if triangle not in unsafe_triangles
+            and max(float(coordinates[node][0]) for node in triangle) <= 5.1
+        )
+        selected = {triangle for _quality, triangle in candidates[:target_selected]}
+        if len(selected) != target_selected:
+            raise BoundaryLayerSmokeError("safe centroid refinement inventory is incomplete")
 
         midpoint_tags: dict[tuple[int, int], int] = {}
         midpoint_coordinates: dict[int, tuple[float, float, float]] = {}
         next_node = int(gmsh.model.mesh.getMaxNodeTag()) + 1
         next_element = int(gmsh.model.mesh.getMaxElementTag()) + 1
 
-        def midpoint(left: int, right: int) -> int:
+        def centroid(raw_nodes: Sequence[int]) -> int:
             nonlocal next_node
-            key = tuple(sorted((int(left), int(right))))
+            key = tuple(sorted(int(value) for value in raw_nodes))
             if key not in midpoint_tags:
                 tag = next_node
                 next_node += 1
-                a, b = coordinates[key[0]], coordinates[key[1]]
                 midpoint_tags[key] = tag
-                midpoint_coordinates[tag] = tuple(0.5 * (float(a[i]) + float(b[i])) for i in range(3))
+                midpoint_coordinates[tag] = tuple(
+                    sum(float(coordinates[node][axis]) for node in key) / len(key)
+                    for axis in range(3)
+                )
             return midpoint_tags[key]
 
-        def bisect_triangle(nodes: Sequence[int], edge: tuple[int, int]) -> list[list[int]]:
+        def split_triangle(nodes: Sequence[int]) -> list[list[int]]:
             ordered = [int(value) for value in nodes]
-            other = next(value for value in ordered if value not in edge)
-            left, right = edge
-            middle = midpoint(left, right)
-            # Preserve the source orientation by selecting the cyclic ordering.
-            variants = [(ordered[i], ordered[(i + 1) % 3], ordered[(i + 2) % 3]) for i in range(3)]
-            a, b, c = next(value for value in variants if set(value[:2]) == set(edge))
-            m = midpoint(a, b)
-            return [[a, m, c], [m, b, c]]
+            a, b, c = ordered
+            middle = centroid(ordered)
+            return [[a, b, middle], [b, c, middle], [c, a, middle]]
 
         refined_walls: dict[int, list[list[int]]] = defaultdict(list)
         for surface, records in wall_records.items():
             for record in records:
                 nodes = [int(value) for value in record["nodes"]]
-                edge = selected.get(tuple(sorted(nodes)))
-                refined_walls[surface].extend([nodes] if edge is None else bisect_triangle(nodes, edge))
+                is_selected = tuple(sorted(nodes)) in selected
+                refined_walls[surface].extend([nodes] if not is_selected else split_triangle(nodes))
 
         all_prism_records = {
             int(raw_volume): _element_records_from_gmsh(gmsh, 3, int(raw_volume))
             for raw_volume in prism_volume_tags
         }
-        propagated_edges = set(selected.values())
+        propagated_triangles = set(selected)
         for _layer in range(60):
-            additions: set[tuple[int, int]] = set()
+            additions: set[tuple[int, int, int]] = set()
             for records in all_prism_records.values():
                 for record in records:
                     nodes = [int(value) for value in record["nodes"]]
-                    bottom_edges = {
-                        tuple(sorted((nodes[0], nodes[1]))),
-                        tuple(sorted((nodes[1], nodes[2]))),
-                        tuple(sorted((nodes[2], nodes[0]))),
-                    }
-                    matches = sorted(bottom_edges & propagated_edges)
-                    if len(matches) == 1:
-                        edge = matches[0]
-                        positions = [nodes[:3].index(edge[0]), nodes[:3].index(edge[1])]
-                        additions.add(tuple(sorted((nodes[positions[0] + 3], nodes[positions[1] + 3]))))
-            before = len(propagated_edges)
-            propagated_edges.update(additions)
-            if len(propagated_edges) == before:
+                    if tuple(sorted(nodes[:3])) in propagated_triangles:
+                        additions.add(tuple(sorted(nodes[3:])))
+            before = len(propagated_triangles)
+            propagated_triangles.update(additions)
+            if len(propagated_triangles) == before:
                 break
-        top_selected_edges: set[tuple[int, int]] = set()
+        top_selected_triangles: set[tuple[int, int, int]] = set()
         refined_prisms: dict[int, list[list[int]]] = defaultdict(list)
         original_prism_count = 0
         for volume, records in all_prism_records.items():
@@ -13831,23 +13792,19 @@ class RealProjectBoundaryLayerStrategy:
             for record in records:
                 nodes = [int(value) for value in record["nodes"]]
                 bottom = tuple(sorted(nodes[:3]))
-                bottom_edges = {
-                    tuple(sorted((nodes[0], nodes[1]))),
-                    tuple(sorted((nodes[1], nodes[2]))),
-                    tuple(sorted((nodes[2], nodes[0]))),
-                }
-                matches = sorted(bottom_edges & propagated_edges)
-                if not matches:
+                if bottom not in propagated_triangles:
                     refined_prisms[volume].append(nodes)
                     continue
-                if len(matches) != 1:
-                    raise BoundaryLayerSmokeError("prism layer has multiple selected tangential edges")
-                edge = matches[0]
-                variants = [(nodes[i], nodes[(i + 1) % 3], nodes[(i + 2) % 3], nodes[i + 3], nodes[(i + 1) % 3 + 3], nodes[(i + 2) % 3 + 3]) for i in range(3)]
-                a, b, c, d, e, f = next(value for value in variants if set(value[:2]) == set(edge))
-                m0, m1 = midpoint(a, b), midpoint(d, e)
-                top_selected_edges.add(tuple(sorted((d, e))))
-                refined_prisms[volume].extend([[a, m0, c, d, m1, f], [m0, b, c, m1, e, f]])
+                a, b, c, d, e, f = nodes
+                m0, m1 = centroid((a, b, c)), centroid((d, e, f))
+                top_selected_triangles.add(tuple(sorted((d, e, f))))
+                refined_prisms[volume].extend(
+                    [
+                        [a, b, m0, d, e, m1],
+                        [b, c, m0, e, f, m1],
+                        [c, a, m0, f, d, m1],
+                    ]
+                )
 
         refined_tops: dict[int, list[list[int]]] = defaultdict(list)
         for raw_surface in top_surface_tags:
@@ -13857,10 +13814,8 @@ class RealProjectBoundaryLayerStrategy:
                 raise BoundaryLayerSmokeError("adaptive top refinement requires Triangle3 surfaces")
             for record in records:
                 nodes = [int(value) for value in record["nodes"]]
-                matches = [edge for edge in top_selected_edges if set(edge) <= set(nodes)]
-                if len(matches) > 1:
-                    raise BoundaryLayerSmokeError("top triangle has multiple selected edges")
-                refined_tops[surface].extend([nodes] if not matches else bisect_triangle(nodes, matches[0]))
+                is_selected = tuple(sorted(nodes)) in top_selected_triangles
+                refined_tops[surface].extend([nodes] if not is_selected else split_triangle(nodes))
 
         owner = min(int(tag) for tag in prism_volume_tags)
         del core_volume_tags
@@ -13915,7 +13870,7 @@ class RealProjectBoundaryLayerStrategy:
             tags = list(range(next_element, next_element + len(records)))
             next_element += len(records)
             gmsh.model.mesh.addElementsByType(volume, prism_type, tags, [node for record in records for node in record])
-        final_columns = triangle_count + len(selected)
+        final_columns = triangle_count + 2 * len(selected)
         return {
             "schema": "cfdpipe.frozen_prism_adaptive_tangential_refinement.v1",
             "status": "PASS",
@@ -13924,7 +13879,7 @@ class RealProjectBoundaryLayerStrategy:
             "realized_area_equivalent_size_ratio": math.sqrt(triangle_count / final_columns),
             "initial_column_count": triangle_count,
             "final_column_count": final_columns,
-            "selected_interior_edge_count": len(selected) // 2,
+            "selected_source_triangle_count": len(selected),
             "initial_prism_count": original_prism_count,
             "final_prism_count": sum(len(records) for records in refined_prisms.values()),
             "new_midpoint_node_count": len(new_nodes),
