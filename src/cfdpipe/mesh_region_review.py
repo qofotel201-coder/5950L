@@ -64,7 +64,11 @@ def review_mesh_regions(
 
     if plan.get("schema") != "cfdpipe.production_mesh_family_plan.v1":
         raise MeshRegionReviewError("mesh-family plan schema is invalid")
-    if plan.get("status") != "COARSE_REGIONS_FROZEN_MEDIUM_AUTHORIZED":
+    plan_status = plan.get("status")
+    if plan_status not in {
+        "COARSE_REGIONS_FROZEN_MEDIUM_AUTHORIZED",
+        "COARSE_MEDIUM_SYSTEMATIC_REFINEMENT_PASS_FINE_AUTHORIZED",
+    }:
         raise MeshRegionReviewError("mesh-family plan is not in the authorization state")
     family = plan.get("mesh_family")
     levels = plan.get("levels")
@@ -91,12 +95,27 @@ def review_mesh_regions(
     if first_layer <= 0.0 or growth <= 1.0 or wall_tangential != 0.4:
         raise MeshRegionReviewError("frozen wall resolution parameters changed")
     implementation = family.get("sizing_implementation")
-    if implementation != {
+    original_implementation = {
         "dimension_3_only": True,
         "region_composition": "minimum",
         "transition_interpolation": "linear_distance_to_box",
         "wall_surface_triangulation_preserved": True,
-    }:
+    }
+    refined_implementation = {
+        "dimension_3_only": False,
+        "region_composition": "minimum",
+        "transition_interpolation": "linear_distance_to_box",
+        "wall_surface_triangulation_preserved": False,
+        "medium_wall_refinement": "deterministic_full-column_centroid_subdivision",
+        "medium_wall_area_equivalent_size_ratio": 0.7939327401603632,
+        "normal_schedule_preserved": True,
+    }
+    expected_implementation = (
+        original_implementation
+        if plan_status == "COARSE_REGIONS_FROZEN_MEDIUM_AUTHORIZED"
+        else refined_implementation
+    )
+    if implementation != expected_implementation:
         raise MeshRegionReviewError("volume sizing implementation is not frozen")
 
     regions: list[dict[str, Any]] = []

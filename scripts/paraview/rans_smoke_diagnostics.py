@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import sys
 import traceback
@@ -13,7 +14,12 @@ import traceback
 from paraview import servermanager, simple
 
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+_repository_override = os.environ.get("CFDPIPE_REPOSITORY_ROOT")
+REPOSITORY_ROOT = (
+    Path(_repository_override)
+    if _repository_override
+    else Path(__file__).resolve().parents[2]
+).resolve(strict=True)
 SOURCE_ROOT = REPOSITORY_ROOT / "src"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
@@ -259,8 +265,17 @@ def main():
         momentum = _point_array(dataset, "Momentum", 3)
         velocity = _point_array(dataset, "Velocity", 3)
         mach = _point_array(dataset, "Mach", 1)
-        _point_array(dataset, "Pressure", 1)
-        _point_array(dataset, "Temperature", 1)
+        pressure = _point_array(dataset, "Pressure", 1)
+        temperature = _point_array(dataset, "Temperature", 1)
+        for name, values in (
+            ("Density", density),
+            ("Pressure", pressure),
+            ("Temperature", temperature),
+        ):
+            if min(values) <= 0.0:
+                raise RANSDiagnosticError(
+                    "solution contains non-positive {0}".format(name)
+                )
         yplus = _point_array(dataset, "Y_Plus", 1)
         skin_vectors = _point_array(dataset, "Skin_Friction_Coefficient", 3)
         mesh = parse_topology_smoke_su2(mesh_path)
@@ -310,6 +325,16 @@ def main():
         order_label = "second-order restart" if spatial_order == 2 else "first-order"
         payload = {
             "status": status,
+            "physical_state": {
+                "density_minimum": min(density),
+                "pressure_minimum_pa": min(pressure),
+                "temperature_minimum_k": min(temperature),
+                "nonfinite_count": 0,
+                "nonpositive_density_count": 0,
+                "nonpositive_pressure_count": 0,
+                "nonpositive_temperature_count": 0,
+                "status": "PASS",
+            },
             "diagnostic_only": True,
             "production_eligible": False,
             "convergence_claimed": False,
