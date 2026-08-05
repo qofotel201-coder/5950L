@@ -13,6 +13,11 @@ def main() -> int:
     parser.add_argument("--base", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--transition", action="store_true")
+    parser.add_argument(
+        "--full-output",
+        action="store_true",
+        help="Write ParaView volume/surface output for a diagnostic checkpoint",
+    )
     parser.add_argument("--cfl", choices=("0.001", "0.005", "0.01", "0.05", "0.1", "0.5", "1.0"), default="1.0")
     args = parser.parse_args()
     text = args.base.read_text(encoding="utf-8")
@@ -27,6 +32,7 @@ def main() -> int:
         raise ValueError("base config is not the frozen accepted first-order contract")
     replaced = {"MUSCL_FLOW", "MUSCL_TURB", "RAMP_MUSCL", "RAMP_MUSCL_COEFF",
                 "RAMP_MUSCL_POWER", "KIND_MUSCL_RAMP", "CONV_STARTITER"}
+    replaced.add("OUTPUT_FILES")
     replaced.add("CFL_NUMBER")
     lines = []
     for line in text.splitlines():
@@ -41,6 +47,11 @@ def main() -> int:
     else:
         lines.append("RAMP_MUSCL= NO")
     lines.append("CONV_STARTITER= 501")
+    lines.append(
+        "OUTPUT_FILES= RESTART, PARAVIEW, SURFACE_PARAVIEW"
+        if args.full_output
+        else "OUTPUT_FILES= RESTART"
+    )
     rendered = "\n".join(lines) + "\n"
     for frozen in ("SST_OPTIONS= V2003m", "CONV_NUM_METHOD_FLOW= ROE",
                    "MARKER_SUPERSONIC_OUTLET= ( rear_outlet_1, rear_outlet_2 )"):

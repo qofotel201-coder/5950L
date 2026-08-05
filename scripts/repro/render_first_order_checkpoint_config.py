@@ -33,6 +33,11 @@ def main() -> int:
         help="Enable restart input; omit only for the independent first segment",
     )
     parser.add_argument(
+        "--full-output",
+        action="store_true",
+        help="Write ParaView volume/surface output for a diagnostic checkpoint",
+    )
+    parser.add_argument(
         "--cfl",
         choices=("0.001", "0.005", "0.01", "0.05", "0.1", "0.5", "1.0"),
         default="0.5",
@@ -69,6 +74,7 @@ def main() -> int:
         "RAMP_MUSCL_COEFF",
         "RAMP_MUSCL_POWER",
         "KIND_MUSCL_RAMP",
+        "OUTPUT_FILES",
     }
     lines: list[str] = []
     for line in text.splitlines():
@@ -88,6 +94,11 @@ def main() -> int:
             "ITER= 500",
             "CONV_STARTITER= 501",
             "RAMP_MUSCL= NO",
+            (
+                "OUTPUT_FILES= RESTART, PARAVIEW, SURFACE_PARAVIEW"
+                if args.full_output
+                else "OUTPUT_FILES= RESTART"
+            ),
         )
     )
     args.output.write_text("\n".join(lines) + "\n", encoding="utf-8")

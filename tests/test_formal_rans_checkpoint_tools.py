@@ -60,6 +60,7 @@ class FormalRANSCheckpointToolTests(unittest.TestCase):
             self.assertIn(f"MESH_FILENAME= {mesh.resolve()}", rendered)
             self.assertIn("RESTART_SOL= NO", rendered)
             self.assertIn("CFL_NUMBER= 0.1", rendered)
+            self.assertIn("OUTPUT_FILES= RESTART\n", rendered)
             self.assertEqual(rendered.count("MESH_FILENAME="), 1)
             self.assertEqual(rendered.count("RESTART_SOL="), 1)
             self.assertNotIn("old_mesh.su2", rendered)
@@ -87,6 +88,34 @@ class FormalRANSCheckpointToolTests(unittest.TestCase):
                 check=True,
             )
             self.assertIn("RESTART_SOL= YES", output.read_text(encoding="utf-8"))
+
+    def test_first_order_full_output_is_explicit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            base = root / "base.cfg"
+            mesh = root / "mesh.su2"
+            output = root / "diagnostic.cfg"
+            base.write_text(BASE_CONFIG, encoding="utf-8")
+            mesh.write_text("mesh", encoding="utf-8")
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "scripts/repro/render_first_order_checkpoint_config.py"),
+                    "--base",
+                    str(base),
+                    "--mesh",
+                    str(mesh),
+                    "--output",
+                    str(output),
+                    "--full-output",
+                ],
+                check=True,
+            )
+            rendered = output.read_text(encoding="utf-8")
+            self.assertIn(
+                "OUTPUT_FILES= RESTART, PARAVIEW, SURFACE_PARAVIEW", rendered
+            )
+            self.assertEqual(rendered.count("OUTPUT_FILES="), 1)
 
     def test_renderer_rejects_changed_sst_contract(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
