@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 from scripts.repro.finalize_first_order_acceptance import valid_consecutive_counts
+from scripts.repro.evaluate_second_order_checkpoint import checkpoint_status
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +36,32 @@ OUTPUT_FILES= RESTART, PARAVIEW, SURFACE_PARAVIEW
 
 
 class FormalRANSCheckpointToolTests(unittest.TestCase):
+    def test_second_order_unmet_convergence_gates_remain_pending(self) -> None:
+        self.assertEqual(
+            checkpoint_status(
+                log_pass=True,
+                diagnostics_present=True,
+                physical_pass=True,
+                consecutive=0,
+                total_iterations=2000,
+                maximum_total_iterations=50000,
+            ),
+            "PENDING",
+        )
+
+    def test_second_order_physical_failure_is_terminal(self) -> None:
+        self.assertEqual(
+            checkpoint_status(
+                log_pass=True,
+                diagnostics_present=True,
+                physical_pass=False,
+                consecutive=0,
+                total_iterations=2000,
+                maximum_total_iterations=50000,
+            ),
+            "FAIL",
+        )
+
     def test_finalizer_accepts_later_adjacent_passing_windows(self) -> None:
         self.assertTrue(valid_consecutive_counts(1, 2))
         self.assertTrue(valid_consecutive_counts(2, 3))

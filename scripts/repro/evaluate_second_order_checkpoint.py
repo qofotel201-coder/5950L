@@ -14,6 +14,25 @@ COMPONENTS = ("CFx", "CFy", "CFz", "CMx", "CMy", "CMz")
 RESIDUALS = ("rms[Rho]", "rms[RhoU]", "rms[RhoV]", "rms[RhoW]", "rms[RhoE]", "rms[k]", "rms[w]")
 
 
+def checkpoint_status(
+    *,
+    log_pass: bool,
+    diagnostics_present: bool,
+    physical_pass: bool,
+    consecutive: int,
+    total_iterations: int,
+    maximum_total_iterations: int,
+) -> str:
+    """Separate terminal physical failures from not-yet-converged hard gates."""
+    if not log_pass or (diagnostics_present and not physical_pass):
+        return "FAIL"
+    if consecutive >= 3:
+        return "PASS"
+    if total_iterations >= maximum_total_iterations:
+        return "FAIL"
+    return "PENDING"
+
+
 def digest(path: Path) -> str:
     value = hashlib.sha256()
     with path.open("rb") as stream:
@@ -161,14 +180,14 @@ def main() -> int:
                  "rear_outlets": outlet_pass, "yplus": yplus_pass, "measurement_stability": flow_pass})
     complete_window = load_pass and residual_pass and all(hard.values()) and not args.transition
     consecutive = (int(diagnostic_prior.get("consecutive_passing_windows", 0)) + 1) if complete_window and diagnostic_prior else 0
-    if not log_pass or (diagnostics and not (physical_pass and mass_pass and outlet_pass and yplus_pass)):
-        status = "FAIL"
-    elif consecutive >= 3:
-        status = "PASS"
-    elif args.total_iterations >= args.maximum_total_iterations:
-        status = "FAIL"
-    else:
-        status = "PENDING"
+    status = checkpoint_status(
+        log_pass=log_pass,
+        diagnostics_present=diagnostics is not None,
+        physical_pass=physical_pass,
+        consecutive=consecutive,
+        total_iterations=args.total_iterations,
+        maximum_total_iterations=args.maximum_total_iterations,
+    )
     reasons = [name for passed, name in ((load_pass, "load_or_moment_window"), (residual_pass, "residual_deterioration"),
                (diagnostics is not None, "full_diagnostics_deferred"), (flow_pass, "measurement_stability"),
                (mass_pass, "mass_balance"), (outlet_pass, "rear_outlets"), (yplus_pass, "yplus"),
