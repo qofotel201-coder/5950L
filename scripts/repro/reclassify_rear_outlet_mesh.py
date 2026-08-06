@@ -115,8 +115,10 @@ def main() -> int:
         if max(abs(value - args.plane_x) for value in xs) <= args.tolerance:
             planar.append(record)
         else:
-            if max(xs) >= args.plane_x - args.tolerance:
+            if max(xs) > args.plane_x + args.tolerance:
                 raise ValueError("nonplanar outlet face crosses the outlet plane")
+            if sum(xs) / 3.0 >= args.plane_x - args.tolerance:
+                raise ValueError("nonplanar outlet face centroid is not upstream")
             moved.append(record)
             moved_x.extend(xs)
     if not planar or not moved:

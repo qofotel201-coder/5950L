@@ -34,7 +34,7 @@ MARKER_ELEMS= 1
 MARKER_TAG= rear_outlet_1
 MARKER_ELEMS= 2
 5 1 2 3
-5 0 4 5
+5 1 4 5
 MARKER_TAG= rear_outlet_2
 MARKER_ELEMS= 1
 5 0 3 2
