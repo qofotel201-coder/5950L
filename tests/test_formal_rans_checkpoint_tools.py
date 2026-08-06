@@ -6,6 +6,8 @@ import sys
 import tempfile
 import unittest
 
+from scripts.repro.finalize_first_order_acceptance import valid_consecutive_counts
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -33,6 +35,12 @@ OUTPUT_FILES= RESTART, PARAVIEW, SURFACE_PARAVIEW
 
 
 class FormalRANSCheckpointToolTests(unittest.TestCase):
+    def test_finalizer_accepts_later_adjacent_passing_windows(self) -> None:
+        self.assertTrue(valid_consecutive_counts(1, 2))
+        self.assertTrue(valid_consecutive_counts(2, 3))
+        self.assertFalse(valid_consecutive_counts(0, 1))
+        self.assertFalse(valid_consecutive_counts(2, 4))
+
     def test_first_order_renderer_creates_independent_medium_initial_field(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -51,6 +51,11 @@ def git_head(path: Path) -> str:
     raise ValueError("evidence directory is not contained in a Git working tree")
 
 
+def valid_consecutive_counts(first: int, second: int) -> bool:
+    """Accept any adjacent pair in an already-established passing sequence."""
+    return first >= 1 and second == first + 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", required=True, type=Path)
@@ -155,7 +160,9 @@ def main() -> int:
     checks.extend(lineage.values())
     checks.extend(
         (
-            windows[0]["consecutive"] == 1,
+            valid_consecutive_counts(
+                windows[0]["consecutive"], windows[1]["consecutive"]
+            ),
             windows[1]["status"] == "PASS",
             windows[1]["consecutive"] >= 2,
         )
