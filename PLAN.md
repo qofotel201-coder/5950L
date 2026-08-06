@@ -8,7 +8,8 @@
 
 - `DESIGN_COARSE_RANS_FIRST_ORDER = PASS`
 - `DESIGN_COARSE_RANS_SECOND_ORDER = PASS`
-- `DESIGN_MEDIUM_RANS = HOLD_UNTIL_COARSE_PASS`
+- `DESIGN_MEDIUM_RANS_FIRST_ORDER = PASS`
+- `DESIGN_MEDIUM_RANS_SECOND_ORDER = PENDING`
 - `TWO_LEVEL_MESH_SENSITIVITY = HOLD`
 - `PRODUCTION_MESH = NOT_FROZEN_FOR_FIVE_CASES`
 - `REMAINING_FOUR_CASES = HOLD`
@@ -21,6 +22,14 @@
 - 中网格一阶必须从自身9,582,917单元PASS网格独立初始化，禁止使用任何粗网格restart。采用24 MPI ranks、每段500步、最近300步窗口；主要力跨度不超过2%、主要力矩不超过3%、相对质量不平衡不超过`5e-3`，无持续漂移且连续2个完整窗口通过。
 - 只有中网格一阶PASS restart及SHA-256完整后，才以500步MUSCL平滑过渡进入二阶。二阶沿用粗网格已验证的SST `V2003m`、物理合同、诊断定义与检查点策略，连续3个完整窗口并通过`0.5%/1%/0.5%/0.5%`稳定门、质量`1e-3`、y+及两出口硬门后PASS。
 - 粗、中二阶均PASS后才运行敏感性比较并冻结中网格；主要力/内部流量/总压恢复/截面量采用2%工程容差、力矩3%，近零量使用归一化绝对容差。未通过比较前其余四工况保持HOLD，不启动并行大型RANS。
+
+### 中网格一阶完成记录（2026-08-06）
+
+- 中网格使用自身独立初场和9,582,917单元PASS网格，未复用粗网格restart；网格SHA-256为`c16076e0c8cb5be13c5a94940567fb02fedbf6087489d4fbf64501d0c6ad2037`。
+- 24 MPI ranks、每段500步和最近300步窗口执行至合同上限`segment_0100`；所有SU2/pvbatch返回码为0，无NaN/Inf、非正密度/压力/温度或出口回流。
+- 相邻完整窗口`segment_0099`和`segment_0100`均PASS，相对全局质量不平衡分别为`0.004942781413053983`和`0.004915294868232091`，最大y+分别为`0.1776493489742279`和`0.17748545110225677`，两个出口最小法向Mach均大于1且反向质量流量为0。
+- 最终一阶restart为`segment_0100/restart.dat`，SHA-256为`040b6ab436ed213aab350c5227b4f164ab84a8edf1f34b3c9f7f80b80a330701`；0099→0100 restart lineage哈希完全一致。
+- 最终验收报告位于`runs/rans_formal/design_medium_checkpoint_20260805T123023Z/first_order/first_order_acceptance.json`，`overall=PASS`。下一质量门为从该显式PASS restart启动中网格二阶MUSCL平滑切换；一阶结果不作最终气动力交付。
 
 ### 当前执行子阶段：粗网格二阶正式验收
 
