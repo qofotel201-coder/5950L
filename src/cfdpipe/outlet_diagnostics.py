@@ -521,6 +521,7 @@ def analyze_outlets(
     marker_results: dict[str, dict[str, Any]] = {}
     for marker, faces in mesh.markers.items():
         evaluate_normal_mach = marker != wall_marker
+        normal_mach_faces: list[dict[str, Any]] = []
         totals = {
             "face_count": len(faces),
             "area_m2": 0.0,
@@ -607,6 +608,18 @@ def analyze_outlets(
                 subsonic = split_linear_triangle(points, normal_mach, threshold=1.0)
                 nonpositive = split_linear_triangle(points, normal_mach, threshold=0.0)
                 face_centroid_mach = sum(normal_mach) / 3.0
+                normal_mach_faces.append(
+                    {
+                        "marker_face_index": face_index,
+                        "mesh_node_ids": list(face),
+                        "centroid_m": list(centroid),
+                        "outward_normal": list(normal),
+                        "area_m2": area,
+                        "vertex_normal_mach": list(normal_mach),
+                        "face_centroid_normal_mach": face_centroid_mach,
+                        "subsonic_area_m2": subsonic["below_area"],
+                    }
+                )
                 totals["backflow_area_m2"] += mass_split["below_area"]
                 totals["subsonic_normal_area_m2"] += subsonic["below_area"]
                 totals["nonpositive_normal_mach_area_m2"] += nonpositive["below_area"]
@@ -653,6 +666,10 @@ def analyze_outlets(
                 "reverse_to_forward_mass_flow_ratio": (
                     reverse / forward if forward > 0.0 else None
                 ),
+                "worst_normal_mach_faces": sorted(
+                    normal_mach_faces,
+                    key=lambda record: record["face_centroid_normal_mach"],
+                )[:25],
             }
         )
         if not evaluate_normal_mach:

@@ -140,6 +140,14 @@ MARKER_ELEMS= 1
             "identity_verified_by_coordinates",
         )
         self.assertEqual(sum(item["face_count"] for item in payload["markers"].values()), 4)
+        worst = payload["markers"]["outlet_1"]["worst_normal_mach_faces"]
+        self.assertEqual(len(worst), 1)
+        self.assertEqual(worst[0]["marker_face_index"], 0)
+        self.assertEqual(worst[0]["mesh_node_ids"], [0, 1, 3])
+        self.assertGreater(worst[0]["area_m2"], 0.0)
+        self.assertEqual(len(worst[0]["centroid_m"]), 3)
+        self.assertEqual(len(worst[0]["outward_normal"]), 3)
+        self.assertEqual(len(worst[0]["vertex_normal_mach"]), 3)
 
     def test_no_slip_wall_zero_velocity_does_not_require_wall_normal_mach(self) -> None:
         mesh = parse_topology_smoke_su2(self._mesh())
@@ -160,6 +168,7 @@ MARKER_ELEMS= 1
 
         wall = payload["markers"]["wall"]
         self.assertFalse(wall["normal_mach_evaluated"])
+        self.assertEqual(wall["worst_normal_mach_faces"], [])
         self.assertIsNone(wall["normal_mach_vertex_min"])
         self.assertIsNone(wall["backflow_area_fraction"])
         self.assertAlmostEqual(payload["mass_balance"]["wall_signed_mass_flow_kg_s"], 0.0)
