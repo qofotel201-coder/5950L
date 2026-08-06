@@ -1,0 +1,40 @@
+schema = "cfdpipe.rear_outlet_marker_correction.v1"
+status = "APPROVED"
+audit_only = false
+
+[source_mesh]
+relative_path = "runs/mesh/medium/production_medium_systematic_20260805T111500Z_s102/mesh.su2"
+sha256 = "c16076e0c8cb5be13c5a94940567fb02fedbf6087489d4fbf64501d0c6ad2037"
+
+[output_mesh]
+sha256 = "0f733eb8ed6a9f2eea12154dfad17fc3ad49f33283b6c760a5c34345eb2c6e57"
+
+[classification]
+outlet_marker = "rear_outlet_1"
+farfield_marker = "front_conical_surface"
+plane_x_m = 6.305362301842
+tolerance_m = 2.0e-7
+original_outlet_faces = 124
+planar_outlet_faces = 6
+moved_to_farfield_faces = 118
+volume_and_point_records_unchanged = true
+
+[geometry_members.planar_outlet]
+fingerprint_id = "19ad56d49df2b67b5e610f3041400bdacfc0d3a351895f381db7b1897b1b7cd9"
+entity_type = "Plane"
+
+[[geometry_members.moved_to_farfield]]
+fingerprint_id = "52f5c38dbcf645345f760c8172569c61972732712ef8c092150ced368cbbaab6"
+entity_type = "Cone"
+
+[[geometry_members.moved_to_farfield]]
+fingerprint_id = "87a798d65788c640b41e445473f761880ecca218e68b5ee888a34529c338e766"
+entity_type = "Cone"
+
+[policy]
+source_geometry_unchanged = true
+boundary_conditions_unchanged = true
+volume_topology_unchanged = true
+runtime_gmsh_tags_forbidden = true
+old_solution_is_diagnostic_only = true
+independent_first_order_restart_required = true

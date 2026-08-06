@@ -8,6 +8,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import tomllib
 
 
 def digest(path: Path) -> str:
@@ -87,44 +88,64 @@ def main() -> int:
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--report", required=True, type=Path)
-    parser.add_argument("--outlet", default="rear_outlet_1")
-    parser.add_argument("--farfield", default="front_conical_surface")
-    parser.add_argument("--plane-x", required=True, type=float)
-    parser.add_argument("--tolerance", default=2.0e-7, type=float)
+    parser.add_argument("--contract", required=True, type=Path)
     args = parser.parse_args()
     source = args.input.resolve(strict=True)
     output = args.output.resolve()
     report = args.report.resolve()
+    contract_path = args.contract.resolve(strict=True)
+    with contract_path.open("rb") as stream:
+        contract = tomllib.load(stream)
+    if contract.get("schema") != "cfdpipe.rear_outlet_marker_correction.v1" or contract.get("status") != "APPROVED":
+        raise ValueError("marker correction contract is not approved")
+    source_contract = contract.get("source_mesh", {})
+    output_contract = contract.get("output_mesh", {})
+    classification = contract.get("classification", {})
+    policy = contract.get("policy", {})
+    required_policy = ("source_geometry_unchanged", "boundary_conditions_unchanged", "volume_topology_unchanged", "runtime_gmsh_tags_forbidden", "old_solution_is_diagnostic_only", "independent_first_order_restart_required")
+    if not all(policy.get(key) is True for key in required_policy):
+        raise ValueError("marker correction safety policy is incomplete")
+    source_sha = digest(source)
+    if source_sha != source_contract.get("sha256"):
+        raise ValueError("source mesh SHA-256 does not match correction contract")
+    outlet = classification.get("outlet_marker")
+    farfield = classification.get("farfield_marker")
+    plane_x = classification.get("plane_x_m")
+    tolerance = classification.get("tolerance_m")
+    if not isinstance(outlet, str) or not isinstance(farfield, str):
+        raise ValueError("contract marker names are invalid")
     if source.is_symlink() or output.exists() or report.exists():
         raise ValueError("input must be regular and outputs must be new")
     if output.parent != report.parent or not output.parent.is_dir():
         raise ValueError("output and report must share an existing directory")
-    if not math.isfinite(args.plane_x) or not 0.0 < args.tolerance < 1.0e-3:
+    if not isinstance(plane_x, (int, float)) or not isinstance(tolerance, (int, float)) or not math.isfinite(plane_x) or not 0.0 < tolerance < 1.0e-3:
         raise ValueError("plane/tolerance is invalid")
 
-    npoin, order, markers, nodes = scan(source, args.outlet)
-    if args.farfield not in markers:
+    npoin, order, markers, nodes = scan(source, outlet)
+    if farfield not in markers:
         raise ValueError("farfield marker is absent")
     coordinates = selected_coordinates(source, npoin, nodes)
     planar: list[str] = []
     moved: list[str] = []
     moved_x: list[float] = []
-    for record in markers[args.outlet]:
+    for record in markers[outlet]:
         ids = [int(value) for value in record.split()[1:4]]
         xs = [coordinates[index][0] for index in ids]
-        if max(abs(value - args.plane_x) for value in xs) <= args.tolerance:
+        if max(abs(value - plane_x) for value in xs) <= tolerance:
             planar.append(record)
         else:
-            if max(xs) > args.plane_x + args.tolerance:
+            if max(xs) > plane_x + tolerance:
                 raise ValueError("nonplanar outlet face crosses the outlet plane")
-            if sum(xs) / 3.0 >= args.plane_x - args.tolerance:
+            if sum(xs) / 3.0 >= plane_x - tolerance:
                 raise ValueError("nonplanar outlet face centroid is not upstream")
             moved.append(record)
             moved_x.extend(xs)
     if not planar or not moved:
         raise ValueError("repair requires both planar and nonplanar outlet faces")
-    markers[args.farfield].extend(moved)
-    markers[args.outlet] = planar
+    if len(planar) != classification.get("planar_outlet_faces") or len(moved) != classification.get("moved_to_farfield_faces") or len(planar) + len(moved) != classification.get("original_outlet_faces"):
+        raise ValueError("classified face counts do not match correction contract")
+    markers[farfield].extend(moved)
+    markers[outlet] = planar
 
     temporary = output.with_name(output.name + ".partial")
     if temporary.exists():
@@ -144,13 +165,17 @@ def main() -> int:
     payload = {
         "schema": "cfdpipe.rear_outlet_mesh_reclassification.v1",
         "status": "PASS",
-        "input": {"path": str(source), "sha256": digest(source), "size_bytes": source.stat().st_size},
+        "contract": {"path": str(contract_path), "sha256": digest(contract_path)},
+        "input": {"path": str(source), "sha256": source_sha, "size_bytes": source.stat().st_size},
         "output": {"path": str(output), "sha256": digest(output), "size_bytes": output.stat().st_size},
-        "contract": {"outlet": args.outlet, "farfield": args.farfield, "plane_x_m": args.plane_x, "tolerance_m": args.tolerance},
-        "counts": {"original_outlet_faces": len(planar) + len(moved), "planar_outlet_faces": len(planar), "moved_to_farfield_faces": len(moved), "farfield_faces_after": len(markers[args.farfield])},
+        "classification": {"outlet": outlet, "farfield": farfield, "plane_x_m": plane_x, "tolerance_m": tolerance},
+        "counts": {"original_outlet_faces": len(planar) + len(moved), "planar_outlet_faces": len(planar), "moved_to_farfield_faces": len(moved), "farfield_faces_after": len(markers[farfield])},
         "moved_node_x_range_m": [min(moved_x), max(moved_x)],
         "volume_and_point_records_unchanged": True,
     }
+    if payload["output"]["sha256"] != output_contract.get("sha256"):
+        output.unlink()
+        raise ValueError("derived mesh SHA-256 does not match correction contract")
     report.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(payload, indent=2))
     return 0
